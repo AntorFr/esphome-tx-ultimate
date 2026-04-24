@@ -1,11 +1,13 @@
 #include "tx_ultimate_switch.h"
 #include "esphome/core/log.h"
 #include "esphome/core/application.h"
+#ifdef USE_AUDIO
 #include "esphome/components/audio/audio.h"
 #include "esphome/components/media_player/media_player.h"
 #ifdef USE_ESP32
 #include "esphome/components/speaker/media_player/speaker_media_player.h"
 #endif
+#endif  // USE_AUDIO
 
 namespace esphome {
 namespace tx_ultimate_switch {
@@ -30,11 +32,7 @@ void TxUltimateSwitch::setup() {
   }
 
   // Wire relay state callbacks
-  for (auto &btn : buttons_) {
-    if (btn.relay != nullptr) {
-      btn.relay->add_target_state_reached_listener([this]() { refresh_led_default_(); });
-    }
-  }
+  // (state changes are detected in loop() instead of listener interface)
 
   // Wire theme select callback
   if (theme_select_ != nullptr) {
@@ -47,13 +45,26 @@ void TxUltimateSwitch::setup() {
   refresh_nightlight_();
 }
 
-void TxUltimateSwitch::dump_config() {
-  ESP_LOGCONFIG(TAG, "TX Ultimate Switch:");
+void TxUltimateSwitch::dump_config() {  ESP_LOGCONFIG(TAG, "TX Ultimate Switch:");
   ESP_LOGCONFIG(TAG, "  Button count: %d", button_count_);
   ESP_LOGCONFIG(TAG, "  Themes: %d", themes_.size());
   ESP_LOGCONFIG(TAG, "  Night sensor: %s", night_sensor_ != nullptr ? "configured" : "not configured");
   ESP_LOGCONFIG(TAG, "  Sleep sensor: %s", sleep_sensor_ != nullptr ? "configured" : "not configured");
   ESP_LOGCONFIG(TAG, "  Away sensor:  %s", away_sensor_  != nullptr ? "configured" : "not configured");
+}
+
+// ── Loop (relay state change detection) ──────────────────────────────────────
+
+void TxUltimateSwitch::loop() {
+  for (uint8_t i = 0; i < button_count_ && i < buttons_.size(); i++) {
+    auto &btn = buttons_[i];
+    if (btn.relay == nullptr || !btn.switch_relay) continue;
+    bool current = btn.relay->current_values.is_on();
+    if (current != btn.last_relay_state) {
+      btn.last_relay_state = current;
+      refresh_led_default_();
+    }
+  }
 }
 
 // ── Nightlight logic ──────────────────────────────────────────────────────────
@@ -303,6 +314,7 @@ const SoundPack *TxUltimateSwitch::active_sound_pack_() const {
   return &sound_packs_[0];
 }
 
+#ifdef USE_AUDIO
 void TxUltimateSwitch::play_sound_(audio::AudioFile *file) {
   if (file == nullptr || media_player_ == nullptr) return;
 
@@ -320,6 +332,9 @@ void TxUltimateSwitch::play_sound_(audio::AudioFile *file) {
   }
 #endif
 }
+#else
+void TxUltimateSwitch::play_sound_(audio::AudioFile *file) {}
+#endif  // USE_AUDIO
 
 }  // namespace tx_ultimate_switch
 }  // namespace esphome

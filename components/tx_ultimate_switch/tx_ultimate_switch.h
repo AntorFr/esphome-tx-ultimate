@@ -79,6 +79,7 @@ struct SoundPack {
 struct ButtonConfig {
   bool switch_relay{true};
   light::LightState *relay{nullptr};  // set by codegen
+  bool last_relay_state{false};       // tracked in loop() for LED refresh
 };
 
 // ── Main component ────────────────────────────────────────────────────────────
@@ -142,6 +143,7 @@ class TxUltimateSwitch : public Component {
 
   // ESPHome lifecycle
   void setup() override;
+  void loop() override;
   void dump_config() override;
 
   // Public for time-based re-sync (called every 5 min from YAML time trigger)
