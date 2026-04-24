@@ -2,7 +2,7 @@ substitutions:
   device_name: desk-light-switch
   friendly_name: "Bouton applique bureau"
 
-  # Relay 1 — contrôlé par HA (switch_relay: false), restaure son état au reboot
+  # Relay 1 — reste ON en permanence pour alimenter l'ampoule connectée (ex. Hue)
   relay_1_restore_mode: RESTORE_DEFAULT_ON
 
   # Capteur HA utilisé comme inhibiteur de nightlight quand absent
@@ -83,8 +83,8 @@ tx_ultimate_switch:
   button_count: 1
 
   buttons:
-    - switch_relay: false   # le relay est contrôlé par HA, pas par le toucher
-      relay: relay_1
+    - switch_relay: false   # relay toujours ON — ampoule connectée (ex. Hue) alimentée en permanence,
+      relay: relay_1        # c'est HA qui pilote l'ampoule, pas le relay
 
   leds: leds
   leds_top: leds_top
@@ -108,7 +108,4 @@ tx_ultimate_switch:
       long_press: sound_long_press
       multi_press: sound_multi_press
       slide: sound_slide
-
-  button_on_time: 500ms
-  touch_led_duration: 6s
 
