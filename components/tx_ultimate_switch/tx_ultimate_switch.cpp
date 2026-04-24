@@ -32,13 +32,13 @@ void TxUltimateSwitch::setup() {
   // Wire relay state callbacks
   for (auto &btn : buttons_) {
     if (btn.relay != nullptr) {
-      btn.relay->add_new_target_state_reached_callback([this]() { refresh_led_default_(); });
+      btn.relay->add_target_state_reached_listener([this]() { refresh_led_default_(); });
     }
   }
 
   // Wire theme select callback
   if (theme_select_ != nullptr) {
-    theme_select_->add_on_state_callback([this](const std::string &, size_t) {
+    theme_select_->add_on_state_callback([this](size_t) {
       refresh_led_default_();
     });
   }
@@ -282,7 +282,7 @@ const Theme *TxUltimateSwitch::active_theme_() const {
 
   // If a select is configured, use its current value
   if (theme_select_ != nullptr) {
-    const auto &active = theme_select_->state;
+    const auto &active = theme_select_->current_option();
     for (auto &t : themes_) {
       if (t.name == active) return &t;
     }
