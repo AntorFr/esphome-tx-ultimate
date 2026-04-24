@@ -7,7 +7,7 @@ substitutions:
 
   # ESP-NOW — MAC WiFi de desk-light-switch
   # Obtenir via logs ESPHome : "[I][wifi] WiFi MAC Address: XX:XX:XX:XX:XX:XX"
-  espnow_peer_mac: "XX:XX:XX:XX:XX:XX"   # TODO : à renseigner après premier flash
+  espnow_peer_mac: "54:43:B2:71:82:F4"   # MAC de desk-light-switch
 
 
 esphome:

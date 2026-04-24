@@ -1,6 +1,7 @@
 substitutions:
   device_name: desk-light-switch
   friendly_name: "Bouton applique bureau"
+  area: "Bureau"
 
   # Relay 1 — reste ON en permanence pour alimenter l'ampoule connectée (ex. Hue)
   relay_1_restore_mode: RESTORE_DEFAULT_ON
@@ -13,11 +14,12 @@ substitutions:
 
   # ESP-NOW — MAC WiFi de office-light-switch
   # Obtenir via logs ESPHome : "[I][wifi] WiFi MAC Address: XX:XX:XX:XX:XX:XX"
-  espnow_peer_mac: "XX:XX:XX:XX:XX:XX"   # TODO : à renseigner après premier flash
+  espnow_peer_mac: "54:43:B2:71:BB:38"   # MAC de office-light-switch
 
 esphome:
   name: ${device_name}
   friendly_name: ${friendly_name}
+  area: ${area}
 
 packages:
   hw:
