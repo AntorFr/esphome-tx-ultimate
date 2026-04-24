@@ -1,0 +1,381 @@
+# tx_ultimate_hw.yaml
+# Hardware package for the Sonoff TX Ultimate (ESP32 variant).
+# Include this in every device YAML. It declares all hardware components
+# (ESP32, PSRAM, UART, I2S, GPIO, LEDs) and wires them to tx_ultimate_switch.
+#
+# Usage:
+#   packages:
+#     hw: github://AntorFr/esphome-tx-ultimate/packages/tx_ultimate_hw.yaml@main
+
+substitutions:
+  # GPIO pins — TX Ultimate hardware defaults, override only for non-standard variants
+  relay_1_pin: GPIO18
+  relay_2_pin: GPIO17
+  relay_3_pin: GPIO27
+  relay_4_pin: GPIO23
+  vibra_motor_pin: GPIO21
+  pa_power_pin: GPIO26
+  status_led_pin: GPIO33
+  uart_tx_pin: GPIO19
+  uart_rx_pin: GPIO22
+  touchpanel_power_pin: GPIO5
+  led_pin: GPIO13
+  audio_lrclk_pin: GPIO4
+  audio_bclk_pin: GPIO2
+  audio_sdata_pin: GPIO15
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+    version: recommended
+    advanced:
+      minimum_chip_revision: "3.0"
+    sdkconfig_options:
+      CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC: "y"
+      CONFIG_MBEDTLS_SSL_PROTO_TLS1_3: "y"
+      CONFIG_ESP32_SPIRAM_SUPPORT: "y"
+      CONFIG_SPIRAM_USE_MALLOC: "y"
+
+psram:
+  mode: quad
+  speed: 40MHz
+
+external_components:
+  - source:
+      type: git
+      url: https://github.com/AntorFr/esphome-tx-ultimate
+      ref: main
+    components: [tx_ultimate_touch, tx_ultimate_switch]
+  - source: github://AntorFr/esphome-addressable-effects@main
+    components: [custom_addressable_effects]
+
+custom_addressable_effects:
+
+improv_serial:
+captive_portal:
+
+logger:
+  level: INFO
+
+# ── UART (touch panel) ────────────────────────────────────────────────────────
+uart:
+  id: my_uart
+  tx_pin: ${uart_tx_pin}
+  rx_pin: ${uart_rx_pin}
+  baud_rate: 115200
+  data_bits: 8
+  stop_bits: 1
+  parity: NONE
+
+# ── Touch component ───────────────────────────────────────────────────────────
+tx_ultimate_touch:
+  id: tx_touch
+  uart_id: my_uart
+  # long_press_x_offset: 16  # default; change only for hardware variants
+  on_press:
+    - lambda: id(tx).on_touch_press();
+  on_release:
+    - lambda: id(tx).on_touch_release(touch.x);
+  on_swipe_left:
+    - lambda: id(tx).on_swipe_left();
+    - binary_sensor.template.publish:
+        id: swipe_left
+        state: ON
+  on_swipe_right:
+    - lambda: id(tx).on_swipe_right();
+    - binary_sensor.template.publish:
+        id: swipe_right
+        state: ON
+  on_full_touch_release:
+    - lambda: id(tx).on_full_touch_release();
+    - binary_sensor.template.publish:
+        id: multi_touch
+        state: ON
+  on_long_touch_release:
+    - lambda: id(tx).on_long_touch_release();
+    - binary_sensor.template.publish:
+        id: long_press
+        state: ON
+
+# ── I2S Audio ─────────────────────────────────────────────────────────────────
+i2s_audio:
+  - id: i2s_output
+    i2s_lrclk_pin:
+      number: ${audio_lrclk_pin}
+    i2s_bclk_pin:
+      number: ${audio_bclk_pin}
+      ignore_strapping_warning: true
+
+# ── Switches (hardware) ───────────────────────────────────────────────────────
+switch:
+  - id: vibra
+    platform: gpio
+    pin: ${vibra_motor_pin}
+    name: "Vibration"
+    internal: true
+    restore_mode: ALWAYS_OFF
+    on_turn_on:
+      - delay: 50ms
+      - switch.turn_off: vibra
+
+  - id: pa_power
+    platform: gpio
+    pin: ${pa_power_pin}
+    name: "PA Power"
+    internal: true
+    restore_mode: ALWAYS_ON
+
+  - id: touch_power
+    platform: gpio
+    name: "Touch Panel Power"
+    pin:
+      number: ${touchpanel_power_pin}
+      inverted: true
+      ignore_strapping_warning: true
+    internal: true
+    restore_mode: RESTORE_DEFAULT_OFF
+
+# ── Relay outputs ─────────────────────────────────────────────────────────────
+output:
+  - id: l1_output
+    platform: gpio
+    pin: ${relay_1_pin}
+  - id: l2_output
+    platform: gpio
+    pin: ${relay_2_pin}
+  - id: l3_output
+    platform: gpio
+    pin: ${relay_3_pin}
+
+# ── Relay lights ──────────────────────────────────────────────────────────────
+light:
+  - id: relay_1
+    platform: binary
+    name: "L1"
+    output: l1_output
+    restore_mode: RESTORE_DEFAULT_OFF
+
+  - id: relay_2
+    platform: binary
+    name: "L2"
+    output: l2_output
+    restore_mode: RESTORE_DEFAULT_OFF
+
+  - id: relay_3
+    platform: binary
+    name: "L3"
+    output: l3_output
+    restore_mode: RESTORE_DEFAULT_OFF
+
+  # ── LED strip ──────────────────────────────────────────────────────────────
+  - id: leds
+    platform: esp32_rmt_led_strip
+    chipset: WS2812
+    rgb_order: GRB
+    pin: ${led_pin}
+    num_leds: 28
+    name: "NeoPixel Light"
+    internal: true
+    default_transition_length: 0ms
+    max_refresh_rate: 15ms
+    effects:
+      - addressable_rainbow:
+          name: "Rainbow"
+          speed: 30
+          width: 8
+      - pulse:
+          name: "Pulse"
+          transition_length: 1.4s
+          update_interval: 1s
+
+  # ── LED partitions ─────────────────────────────────────────────────────────
+  - id: leds_button_right
+    platform: partition
+    name: "LEDs Button Right"
+    internal: true
+    segments:
+      - id: leds
+        from: 7
+        to: 7
+
+  - id: leds_button_middle
+    platform: partition
+    name: "LEDs Button Middle"
+    internal: true
+    segments:
+      - id: leds
+        from: 9
+        to: 9
+
+  - id: leds_button_left
+    platform: partition
+    name: "LEDs Button Left"
+    internal: true
+    segments:
+      - id: leds
+        from: 11
+        to: 11
+
+  - id: leds_nightlight
+    platform: partition
+    name: "LEDs Nightlight"
+    internal: true
+    segments:
+      - id: leds
+        from: 0
+        to: 6
+      - id: leds
+        from: 8
+        to: 8
+      - id: leds
+        from: 10
+        to: 10
+      - id: leds
+        from: 12
+        to: 19
+      - id: leds
+        from: 27
+        to: 27
+      - id: leds_top
+        from: 0
+        to: 6
+    effects:
+      - addressable_christmas:
+          blank_size: 1
+          bit_size: 1
+      - addressable_stars:
+          stars_probability: 30%
+          color:
+            red: 100%
+            green: 100%
+            blue: 100%
+
+  - id: leds_top
+    platform: partition
+    name: "LEDs Top"
+    internal: true
+    segments:
+      - id: leds
+        from: 20
+        to: 26
+    effects:
+      - addressable_scan:
+          name: "Scan"
+      - addressable_rainbow:
+          name: "Rainbow"
+          speed: 10
+          width: 20
+
+# ── Speaker pipeline ──────────────────────────────────────────────────────────
+speaker:
+  - platform: i2s_audio
+    id: i2s_audio_speaker
+    sample_rate: 48000
+    channel: mono
+    i2s_dout_pin:
+      number: ${audio_sdata_pin}
+      ignore_strapping_warning: true
+    bits_per_sample: 16bit
+    i2s_audio_id: i2s_output
+    dac_type: external
+    i2s_comm_fmt: i2s_lsb
+    buffer_duration: 200ms
+
+  - platform: mixer
+    id: mixing_speaker
+    output_speaker: i2s_audio_speaker
+    num_channels: 1
+    source_speakers:
+      - id: announcement_mixing_input
+        timeout: never
+      - id: media_mixing_input
+        timeout: never
+
+  - platform: resampler
+    id: announcement_resampling_speaker
+    output_speaker: announcement_mixing_input
+    sample_rate: 48000
+    bits_per_sample: 16
+
+  - platform: resampler
+    id: media_resampling_speaker
+    output_speaker: media_mixing_input
+    sample_rate: 48000
+    bits_per_sample: 16
+
+# ── API status binary sensor ──────────────────────────────────────────────────
+binary_sensor:
+  - platform: status
+    name: "API Status"
+    id: api_connected
+    internal: true
+    filters:
+      - delayed_off: 30s
+    on_press:
+      - lambda: id(tx).init_relays();
+
+  # ── Touch event binary sensors (exposed to HA for automations) ─────────────
+  - id: swipe_left
+    platform: template
+    name: "Swipe Left"
+    on_press:
+      - delay: 500ms
+      - binary_sensor.template.publish:
+          id: swipe_left
+          state: OFF
+
+  - id: swipe_right
+    platform: template
+    name: "Swipe Right"
+    on_press:
+      - delay: 500ms
+      - binary_sensor.template.publish:
+          id: swipe_right
+          state: OFF
+
+  - id: multi_touch
+    platform: template
+    name: "Multi Touch"
+    on_press:
+      - delay: 500ms
+      - binary_sensor.template.publish:
+          id: multi_touch
+          state: OFF
+
+  - id: long_press
+    platform: template
+    name: "Long Press"
+    on_press:
+      - delay: 500ms
+      - binary_sensor.template.publish:
+          id: long_press
+          state: OFF
+
+# ── Time (for periodic nightlight re-sync) ────────────────────────────────────
+time:
+  - platform: homeassistant
+    on_time:
+      - seconds: 0
+        minutes: /5
+        then:
+          - lambda: id(tx).refresh_nightlight();
+
+# ── Boot init ─────────────────────────────────────────────────────────────────
+esphome:
+  on_boot:
+    priority: -100
+    then:
+      - binary_sensor.template.publish:
+          id: swipe_left
+          state: OFF
+      - binary_sensor.template.publish:
+          id: swipe_right
+          state: OFF
+      - binary_sensor.template.publish:
+          id: multi_touch
+          state: OFF
+      - binary_sensor.template.publish:
+          id: long_press
+          state: OFF
+      - lambda: id(tx).init_relays();

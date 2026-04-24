@@ -1,0 +1,211 @@
+# tests/test_2_switch_no_audio.yaml
+# Tests schema validation of tx_ultimate_switch (3 buttons, no media player, no sound).
+# Run: ../venv/bin/esphome compile --only-generate tests/test_2_switch_no_audio.yaml
+
+esphome:
+  name: test-switch-no-audio
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+    version: recommended
+    sdkconfig_options:
+      CONFIG_ESP32_SPIRAM_SUPPORT: "y"
+      CONFIG_SPIRAM_USE_MALLOC: "y"
+
+psram:
+  mode: quad
+  speed: 40MHz
+
+external_components:
+  - source: ../components
+    components: [tx_ultimate_touch, tx_ultimate_switch]
+  - source: github://AntorFr/esphome-addressable-effects@main
+    components: [custom_addressable_effects]
+
+custom_addressable_effects:
+
+logger:
+  level: DEBUG
+
+api:
+
+wifi:
+  ssid: test
+  password: testtest
+
+uart:
+  id: my_uart
+  tx_pin: GPIO19
+  rx_pin: GPIO22
+  baud_rate: 115200
+
+output:
+  - id: l1_output
+    platform: gpio
+    pin: GPIO18
+  - id: l2_output
+    platform: gpio
+    pin: GPIO17
+  - id: l3_output
+    platform: gpio
+    pin: GPIO27
+
+light:
+  - id: relay_1
+    platform: binary
+    name: "L1"
+    output: l1_output
+
+  - id: relay_2
+    platform: binary
+    name: "L2"
+    output: l2_output
+
+  - id: relay_3
+    platform: binary
+    name: "L3"
+    output: l3_output
+
+  - id: leds
+    platform: esp32_rmt_led_strip
+    chipset: WS2812
+    rgb_order: GRB
+    pin: GPIO13
+    num_leds: 28
+    name: "NeoPixel"
+    internal: true
+    default_transition_length: 0ms
+    effects:
+      - addressable_rainbow:
+          name: "Rainbow"
+
+  - id: leds_button_right
+    platform: partition
+    name: "LEDs Button Right"
+    internal: true
+    segments:
+      - id: leds
+        from: 7
+        to: 7
+
+  - id: leds_button_middle
+    platform: partition
+    name: "LEDs Button Middle"
+    internal: true
+    segments:
+      - id: leds
+        from: 9
+        to: 9
+
+  - id: leds_button_left
+    platform: partition
+    name: "LEDs Button Left"
+    internal: true
+    segments:
+      - id: leds
+        from: 11
+        to: 11
+
+  - id: leds_nightlight
+    platform: partition
+    name: "LEDs Nightlight"
+    internal: true
+    segments:
+      - id: leds
+        from: 0
+        to: 19
+      - id: leds
+        from: 27
+        to: 27
+
+  - id: leds_top
+    platform: partition
+    name: "LEDs Top"
+    internal: true
+    segments:
+      - id: leds
+        from: 20
+        to: 26
+    effects:
+      - addressable_scan:
+          name: "Scan"
+      - addressable_rainbow:
+          name: "Rainbow"
+
+switch:
+  - id: vibra
+    platform: gpio
+    pin: GPIO21
+    name: "Vibration"
+    internal: true
+    restore_mode: ALWAYS_OFF
+    on_turn_on:
+      - delay: 50ms
+      - switch.turn_off: vibra
+
+binary_sensor:
+  - platform: status
+    name: "API Status"
+    id: api_connected
+    internal: true
+
+  - platform: homeassistant
+    id: night_sensor
+    entity_id: binary_sensor.is_nighttime
+    internal: true
+
+tx_ultimate_touch:
+  id: tx_touch
+  uart_id: my_uart
+  on_press:
+    - lambda: id(tx).on_touch_press();
+  on_release:
+    - lambda: id(tx).on_touch_release(touch.x);
+  on_swipe_left:
+    - lambda: id(tx).on_swipe_left();
+  on_swipe_right:
+    - lambda: id(tx).on_swipe_right();
+  on_full_touch_release:
+    - lambda: id(tx).on_full_touch_release();
+  on_long_touch_release:
+    - lambda: id(tx).on_long_touch_release();
+
+tx_ultimate_switch:
+  id: tx
+  button_count: 3
+  buttons:
+    - switch_relay: true
+      relay: relay_1
+    - switch_relay: true
+      relay: relay_2
+    - switch_relay: true
+      relay: relay_3
+  leds: leds
+  leds_top: leds_top
+  leds_nightlight: leds_nightlight
+  leds_buttons:
+    - leds_button_right
+    - leds_button_middle
+    - leds_button_left
+  vibra: vibra
+  api_connected: api_connected
+  nightlight:
+    sensor: night_sensor
+  themes:
+    - name: "Default"
+      button_color: [0, 0, 100]
+      button_brightness: 0.7
+      nightlight_color: [80, 70, 0]
+      nightlight_brightness: 0.2
+      touch_color: [0, 100, 100]
+      touch_brightness: 1.0
+      touch_effect: "Scan"
+      swipe_left_color: [0, 100, 0]
+      swipe_right_color: [100, 0, 70]
+      long_press_color: [100, 0, 0]
+      multi_touch_effect: "Rainbow"
+  active_theme: "Default"
+  button_on_time: 500ms
+  touch_led_duration: 6s

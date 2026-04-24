@@ -1,0 +1,27 @@
+# packages/themes/explore_the_stars.yaml
+# Explore the Stars theme — deep space blue/purple palette, star effect on nightlight.
+
+tx_ultimate_switch:
+  themes:
+    - name: "Explore the Stars"
+      button_color: [0, 0, 100]
+      button_brightness: 0.6
+      nightlight_color: [20, 0, 80]
+      nightlight_brightness: 0.15
+      nightlight_effect: "Stars"
+      touch_color: [0, 50, 100]
+      touch_brightness: 1.0
+      touch_effect: "Scan"
+      swipe_left_color: [0, 80, 100]
+      swipe_left_brightness: 1.0
+      swipe_left_effect: "None"
+      swipe_right_color: [50, 0, 100]
+      swipe_right_brightness: 1.0
+      swipe_right_effect: "None"
+      long_press_color: [100, 20, 100]
+      long_press_brightness: 1.0
+      long_press_effect: "None"
+      multi_touch_color: [0, 0, 0]
+      multi_touch_brightness: 1.0
+      multi_touch_effect: "Rainbow"
+      sound: explore_the_stars

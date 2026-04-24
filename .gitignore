@@ -1,0 +1,16 @@
+# Python venv
+.venv/
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# ESPHome build outputs
+.esphome/
+build/
+
+# macOS
+.DS_Store
+
+# Secrets
+secrets.yaml

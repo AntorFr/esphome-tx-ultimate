@@ -1,0 +1,27 @@
+# packages/themes/christmas.yaml
+# Christmas theme — warm red/green palette with Christmas effect on nightlight.
+
+tx_ultimate_switch:
+  themes:
+    - name: "Christmas"
+      button_color: [100, 5, 5]
+      button_brightness: 0.8
+      nightlight_color: [0, 60, 0]
+      nightlight_brightness: 0.3
+      nightlight_effect: "Christmas"
+      touch_color: [100, 50, 0]
+      touch_brightness: 1.0
+      touch_effect: "Scan"
+      swipe_left_color: [0, 80, 0]
+      swipe_left_brightness: 1.0
+      swipe_left_effect: "None"
+      swipe_right_color: [100, 0, 0]
+      swipe_right_brightness: 1.0
+      swipe_right_effect: "None"
+      long_press_color: [100, 80, 0]
+      long_press_brightness: 1.0
+      long_press_effect: "None"
+      multi_touch_color: [0, 0, 0]
+      multi_touch_brightness: 1.0
+      multi_touch_effect: "Rainbow"
+      sound: explore_the_stars

@@ -1,0 +1,48 @@
+# tests/test_1_touch.yaml
+# Tests schema validation of tx_ultimate_touch component only.
+# Run: ../venv/bin/esphome compile --only-generate tests/test_1_touch.yaml
+
+esphome:
+  name: test-touch
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+    version: recommended
+
+external_components:
+  - source: ../components
+    components: [tx_ultimate_touch]
+
+logger:
+  level: DEBUG
+
+wifi:
+  ssid: test
+  password: testtest
+
+uart:
+  id: my_uart
+  tx_pin: GPIO19
+  rx_pin: GPIO22
+  baud_rate: 115200
+
+tx_ultimate_touch:
+  id: tx_touch
+  uart_id: my_uart
+  long_press_x_offset: 16
+  on_press:
+    - logger.log: "press"
+  on_release:
+    - logger.log:
+        format: "release pos=%d"
+        args: ["touch.x"]
+  on_swipe_left:
+    - logger.log: "swipe left"
+  on_swipe_right:
+    - logger.log: "swipe right"
+  on_full_touch_release:
+    - logger.log: "full touch"
+  on_long_touch_release:
+    - logger.log: "long press"

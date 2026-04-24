@@ -1,0 +1,137 @@
+# example/my_switch_3btn.yaml
+# Example: 3-button TX Ultimate switch with nightlight and all 3 themes.
+#
+# Substitute:
+#   - device_name / friendly_name
+#   - wifi credentials
+#   - HA nightlight/sleep/away sensor entity IDs
+#   - OTA / API passwords
+
+substitutions:
+  device_name: living-room-switch
+  friendly_name: "Living Room Switch"
+  wifi_ssid: !secret wifi_ssid
+  wifi_password: !secret wifi_password
+  ota_password: !secret ota_password
+  api_encryption_key: !secret api_encryption_key
+
+  # Nightlight sensors (Home Assistant entity IDs)
+  ha_night_sensor: binary_sensor.is_nighttime         # required
+  ha_sleep_sensor: binary_sensor.master_bedroom_sleep # optional (mutes sounds + nightlight)
+  ha_away_sensor: binary_sensor.home_away             # optional (disables nightlight when away)
+
+esphome:
+  name: ${device_name}
+  friendly_name: ${friendly_name}
+
+packages:
+  hw: github://AntorFr/esphome-tx-ultimate/packages/tx_ultimate_hw.yaml@main
+
+  # Themes — each package appends to the themes list
+  theme_default: github://AntorFr/esphome-tx-ultimate/packages/themes/default.yaml@main
+  theme_christmas: github://AntorFr/esphome-tx-ultimate/packages/themes/christmas.yaml@main
+  theme_stars: github://AntorFr/esphome-tx-ultimate/packages/themes/explore_the_stars.yaml@main
+
+wifi:
+  ssid: ${wifi_ssid}
+  password: ${wifi_password}
+  ap:
+    ssid: ${friendly_name} Fallback
+    password: ${ota_password}
+
+ota:
+  - platform: esphome
+    password: ${ota_password}
+
+api:
+  encryption:
+    key: ${api_encryption_key}
+
+# ── Nightlight sensors from Home Assistant ───────────────────────────────────
+binary_sensor:
+  - platform: homeassistant
+    id: night_sensor
+    entity_id: ${ha_night_sensor}
+    publish_initial_state: true
+
+  - platform: homeassistant
+    id: sleep_sensor
+    entity_id: ${ha_sleep_sensor}
+    publish_initial_state: true
+
+  - platform: homeassistant
+    id: away_sensor
+    entity_id: ${ha_away_sensor}
+    publish_initial_state: true
+
+# ── Media player pipeline (wired to the speaker defined in hw package) ───────
+media_player:
+  - platform: speaker
+    name: "Media Player"
+    id: media_player
+    announcement_pipeline:
+      speaker: announcement_resampling_speaker
+      format: FLAC
+      sample_rate: 48000
+      num_channels: 1
+    media_pipeline:
+      speaker: media_resampling_speaker
+      format: FLAC
+      sample_rate: 48000
+      num_channels: 1
+    volume_increment: 0.05
+    volume_min: 0.4
+    volume_max: 1.0
+    files:
+      - id: sound_click
+        path: https://github.com/AntorFr/esphome-tx-ultimate/raw/main/sounds/explore_the_stars/click.flac
+      - id: sound_long_press
+        path: https://github.com/AntorFr/esphome-tx-ultimate/raw/main/sounds/explore_the_stars/long_press.flac
+      - id: sound_multi_press
+        path: https://github.com/AntorFr/esphome-tx-ultimate/raw/main/sounds/explore_the_stars/multi_press.flac
+      - id: sound_slide
+        path: https://github.com/AntorFr/esphome-tx-ultimate/raw/main/sounds/explore_the_stars/slide.flac
+
+# ── Main switch component ─────────────────────────────────────────────────────
+tx_ultimate_switch:
+  id: tx
+  button_count: 3
+
+  buttons:
+    - switch_relay: true
+      relay: relay_1
+    - switch_relay: true
+      relay: relay_2
+    - switch_relay: true
+      relay: relay_3
+
+  leds: leds
+  leds_top: leds_top
+  leds_nightlight: leds_nightlight
+  leds_buttons:
+    - leds_button_right
+    - leds_button_middle
+    - leds_button_left
+
+  vibra: vibra
+  media_player: media_player
+  api_connected: api_connected
+
+  nightlight:
+    sensor: night_sensor
+    sleep_sensor: sleep_sensor
+    away_sensor: away_sensor
+
+  # Themes are merged from the packages above.
+  # The active_theme sets the default theme; user can switch via the HA select entity.
+  active_theme: "Default"
+
+  sound_packs:
+    - name: explore_the_stars
+      click: sound_click
+      long_press: sound_long_press
+      multi_press: sound_multi_press
+      slide: sound_slide
+
+  button_on_time: 500ms
+  touch_led_duration: 6s

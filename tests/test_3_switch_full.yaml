@@ -1,0 +1,341 @@
+# tests/test_3_switch_full.yaml
+# Tests schema validation of tx_ultimate_switch with all features:
+# 3 buttons, media player with sound packs, nightlight + sleep + away sensors.
+# Run: ../venv/bin/esphome compile --only-generate tests/test_3_switch_full.yaml
+
+esphome:
+  name: test-switch-full
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+    version: recommended
+    sdkconfig_options:
+      CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC: "y"
+      CONFIG_MBEDTLS_SSL_PROTO_TLS1_3: "y"
+      CONFIG_ESP32_SPIRAM_SUPPORT: "y"
+      CONFIG_SPIRAM_USE_MALLOC: "y"
+
+psram:
+  mode: quad
+  speed: 40MHz
+
+external_components:
+  - source: ../components
+    components: [tx_ultimate_touch, tx_ultimate_switch]
+  - source: github://AntorFr/esphome-addressable-effects@main
+    components: [custom_addressable_effects]
+
+custom_addressable_effects:
+
+logger:
+  level: DEBUG
+
+api:
+
+wifi:
+  ssid: test
+  password: testtest
+
+uart:
+  id: my_uart
+  tx_pin: GPIO19
+  rx_pin: GPIO22
+  baud_rate: 115200
+
+i2s_audio:
+  - id: i2s_output
+    i2s_lrclk_pin:
+      number: GPIO4
+    i2s_bclk_pin:
+      number: GPIO2
+      ignore_strapping_warning: true
+
+speaker:
+  - platform: i2s_audio
+    id: i2s_audio_speaker
+    sample_rate: 48000
+    channel: mono
+    i2s_dout_pin:
+      number: GPIO15
+      ignore_strapping_warning: true
+    bits_per_sample: 16bit
+    i2s_audio_id: i2s_output
+    dac_type: external
+    i2s_comm_fmt: i2s_lsb
+    buffer_duration: 200ms
+
+  - platform: mixer
+    id: mixing_speaker
+    output_speaker: i2s_audio_speaker
+    num_channels: 1
+    source_speakers:
+      - id: announcement_mixing_input
+        timeout: never
+      - id: media_mixing_input
+        timeout: never
+
+  - platform: resampler
+    id: announcement_resampling_speaker
+    output_speaker: announcement_mixing_input
+    sample_rate: 48000
+    bits_per_sample: 16
+
+  - platform: resampler
+    id: media_resampling_speaker
+    output_speaker: media_mixing_input
+    sample_rate: 48000
+    bits_per_sample: 16
+
+media_player:
+  - platform: speaker
+    id: media_out
+    name: Player
+    internal: false
+    volume_increment: 0.05
+    volume_min: 0.5
+    volume_max: 1.0
+    task_stack_in_psram: true
+    buffer_size: 80000
+    announcement_pipeline:
+      speaker: announcement_resampling_speaker
+      format: FLAC
+      num_channels: 1
+    media_pipeline:
+      speaker: media_resampling_speaker
+      format: FLAC
+      num_channels: 1
+    files:
+      - id: sound_clic_explore
+        file: https://raw.githubusercontent.com/AntorFr/esphome-projects/refs/heads/master/sounds/tx_ultimate/explore_the_stars/clic.flac
+      - id: sound_long_press_explore
+        file: https://raw.githubusercontent.com/AntorFr/esphome-projects/refs/heads/master/sounds/tx_ultimate/explore_the_stars/long_press.flac
+      - id: sound_multi_press_explore
+        file: https://raw.githubusercontent.com/AntorFr/esphome-projects/refs/heads/master/sounds/tx_ultimate/explore_the_stars/multi_press.flac
+      - id: sound_slide_explore
+        file: https://raw.githubusercontent.com/AntorFr/esphome-projects/refs/heads/master/sounds/tx_ultimate/explore_the_stars/slide.flac
+      - id: sound_clic_christmas
+        file: https://raw.githubusercontent.com/AntorFr/esphome-projects/refs/heads/master/sounds/tx_ultimate/christmas/clic.flac
+      - id: sound_long_press_christmas
+        file: https://raw.githubusercontent.com/AntorFr/esphome-projects/refs/heads/master/sounds/tx_ultimate/christmas/long_press.flac
+      - id: sound_multi_press_christmas
+        file: https://raw.githubusercontent.com/AntorFr/esphome-projects/refs/heads/master/sounds/tx_ultimate/christmas/multi_press.flac
+      - id: sound_slide_christmas
+        file: https://raw.githubusercontent.com/AntorFr/esphome-projects/refs/heads/master/sounds/tx_ultimate/christmas/slide.flac
+
+output:
+  - id: l1_output
+    platform: gpio
+    pin: GPIO18
+  - id: l2_output
+    platform: gpio
+    pin: GPIO17
+  - id: l3_output
+    platform: gpio
+    pin: GPIO27
+
+switch:
+  - id: vibra
+    platform: gpio
+    pin: GPIO21
+    name: "Vibration"
+    internal: true
+    restore_mode: ALWAYS_OFF
+    on_turn_on:
+      - delay: 50ms
+      - switch.turn_off: vibra
+
+  - id: pa_power
+    platform: gpio
+    pin: GPIO26
+    name: "PA Power"
+    internal: true
+    restore_mode: ALWAYS_ON
+
+light:
+  - id: relay_1
+    platform: binary
+    name: "L1"
+    output: l1_output
+
+  - id: relay_2
+    platform: binary
+    name: "L2"
+    output: l2_output
+
+  - id: relay_3
+    platform: binary
+    name: "L3"
+    output: l3_output
+
+  - id: leds
+    platform: esp32_rmt_led_strip
+    chipset: WS2812
+    rgb_order: GRB
+    pin: GPIO13
+    num_leds: 28
+    name: "NeoPixel"
+    internal: true
+    default_transition_length: 0ms
+    effects:
+      - addressable_rainbow:
+          name: "Rainbow"
+
+  - id: leds_button_right
+    platform: partition
+    name: "LEDs Button Right"
+    internal: true
+    segments:
+      - id: leds
+        from: 7
+        to: 7
+
+  - id: leds_button_middle
+    platform: partition
+    name: "LEDs Button Middle"
+    internal: true
+    segments:
+      - id: leds
+        from: 9
+        to: 9
+
+  - id: leds_button_left
+    platform: partition
+    name: "LEDs Button Left"
+    internal: true
+    segments:
+      - id: leds
+        from: 11
+        to: 11
+
+  - id: leds_nightlight
+    platform: partition
+    name: "LEDs Nightlight"
+    internal: true
+    segments:
+      - id: leds
+        from: 0
+        to: 19
+      - id: leds
+        from: 27
+        to: 27
+
+  - id: leds_top
+    platform: partition
+    name: "LEDs Top"
+    internal: true
+    segments:
+      - id: leds
+        from: 20
+        to: 26
+    effects:
+      - addressable_scan:
+          name: "Scan"
+      - addressable_rainbow:
+          name: "Rainbow"
+
+binary_sensor:
+  - platform: status
+    name: "API Status"
+    id: api_connected
+    internal: true
+
+  - platform: homeassistant
+    id: night_sensor
+    entity_id: binary_sensor.is_nighttime
+    internal: true
+
+  - platform: homeassistant
+    id: sleep_sensor
+    entity_id: input_boolean.night_mode
+    internal: true
+
+  - platform: homeassistant
+    id: away_sensor
+    entity_id: binary_sensor.home_away
+    internal: true
+
+tx_ultimate_touch:
+  id: tx_touch
+  uart_id: my_uart
+  on_press:
+    - lambda: id(tx).on_touch_press();
+  on_release:
+    - lambda: id(tx).on_touch_release(touch.x);
+  on_swipe_left:
+    - lambda: id(tx).on_swipe_left();
+  on_swipe_right:
+    - lambda: id(tx).on_swipe_right();
+  on_full_touch_release:
+    - lambda: id(tx).on_full_touch_release();
+  on_long_touch_release:
+    - lambda: id(tx).on_long_touch_release();
+
+tx_ultimate_switch:
+  id: tx
+  button_count: 3
+  buttons:
+    - switch_relay: true
+      relay: relay_1
+    - switch_relay: true
+      relay: relay_2
+    - switch_relay: true
+      relay: relay_3
+  leds: leds
+  leds_top: leds_top
+  leds_nightlight: leds_nightlight
+  leds_buttons:
+    - leds_button_right
+    - leds_button_middle
+    - leds_button_left
+  vibra: vibra
+  media_player: media_out
+  api_connected: api_connected
+  nightlight:
+    sensor: night_sensor
+    sleep_sensor: sleep_sensor
+    away_sensor: away_sensor
+  themes:
+    - name: "Default"
+      button_color: [0, 0, 100]
+      button_brightness: 0.7
+      nightlight_color: [80, 70, 0]
+      nightlight_brightness: 0.2
+      nightlight_effect: "None"
+      touch_color: [0, 100, 100]
+      touch_brightness: 1.0
+      touch_effect: "Scan"
+      swipe_left_color: [0, 100, 0]
+      swipe_right_color: [100, 0, 70]
+      long_press_color: [100, 0, 0]
+      multi_touch_effect: "Rainbow"
+      sound: explore_the_stars
+    - name: "Christmas"
+      button_color: [100, 5, 5]
+      button_brightness: 0.8
+      nightlight_color: [0, 60, 0]
+      nightlight_brightness: 0.3
+      nightlight_effect: "Christmas"
+      touch_color: [100, 50, 0]
+      touch_brightness: 1.0
+      touch_effect: "Scan"
+      swipe_left_color: [0, 80, 0]
+      swipe_right_color: [100, 0, 0]
+      long_press_color: [100, 80, 0]
+      multi_touch_effect: "Rainbow"
+      sound: christmas
+  active_theme: "Default"
+  sound_packs:
+    - name: explore_the_stars
+      click: sound_clic_explore
+      long_press: sound_long_press_explore
+      multi_press: sound_multi_press_explore
+      slide: sound_slide_explore
+    - name: christmas
+      click: sound_clic_christmas
+      long_press: sound_long_press_christmas
+      multi_press: sound_multi_press_christmas
+      slide: sound_slide_christmas
+  button_on_time: 500ms
+  touch_led_duration: 6s
