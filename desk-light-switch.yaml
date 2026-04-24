@@ -11,6 +11,10 @@ substitutions:
   # Optionnel : décommenter + ajouter le binary_sensor HA pour activer le nightlight auto
   # ha_night_sensor: binary_sensor.is_nighttime
 
+  # ESP-NOW — MAC WiFi de office-light-switch
+  # Obtenir via logs ESPHome : "[I][wifi] WiFi MAC Address: XX:XX:XX:XX:XX:XX"
+  espnow_peer_mac: "XX:XX:XX:XX:XX:XX"   # TODO : à renseigner après premier flash
+
 esphome:
   name: ${device_name}
   friendly_name: ${friendly_name}
@@ -47,6 +51,36 @@ api:
   reboot_timeout: 15min
 
 web_server:
+
+# ── ESP-NOW fallback : pilote relay_1 de office-light-switch quand HA est down ─
+external_components:
+  - source:
+      type: git
+      url: https://github.com/AntorFr/esphome-espnow
+      ref: main
+    refresh: 0s
+    components: [espnow_sender]
+
+espnow_sender:
+  id: espnow_tx
+  peer_mac: ${espnow_peer_mac}
+  connectivity_sensor_id: api_connected   # réutilise le binary_sensor hw.yaml (delayed_off: 30s)
+  fallback_timeout: 30s
+  recovery_timeout: 10s
+  action: toggle
+  on_fallback_enter:
+    - light.turn_on:
+        id: leds_top
+        effect: "Blink"
+  on_fallback_exit:
+    - light.turn_on:
+        id: leds_top
+        effect: "None"
+
+# Déclenche send_command() au release du bouton (no-op en mode normal)
+tx_ultimate_touch:
+  on_release:
+    - lambda: id(espnow_tx).send_command(true);
 
 # ── Capteur "mode absent" depuis Home Assistant ───────────────────────────────
 binary_sensor:

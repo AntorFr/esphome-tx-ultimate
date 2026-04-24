@@ -5,6 +5,10 @@ substitutions:
   # Capteur HA utilise comme inhibiteur de nightlight quand absent
   ha_away_sensor: input_boolean.away_mode
 
+  # ESP-NOW — MAC WiFi de desk-light-switch
+  # Obtenir via logs ESPHome : "[I][wifi] WiFi MAC Address: XX:XX:XX:XX:XX:XX"
+  espnow_peer_mac: "XX:XX:XX:XX:XX:XX"   # TODO : à renseigner après premier flash
+
 
 esphome:
   name: ${device_name}
@@ -42,6 +46,20 @@ api:
   reboot_timeout: 15min
 
 web_server:
+
+# ── ESP-NOW fallback : reçoit les commandes de desk-light-switch ──────────────
+external_components:
+  - source:
+      type: git
+      url: https://github.com/AntorFr/esphome-espnow
+      ref: main
+    refresh: 0s
+    components: [espnow_receiver]
+
+espnow_receiver:
+  id: espnow_rx
+  peer_mac: ${espnow_peer_mac}   # MAC de desk-light-switch
+  light_id: relay_1              # relay piloté en fallback
 
 binary_sensor:
   - platform: homeassistant
