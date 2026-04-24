@@ -1,0 +1,114 @@
+substitutions:
+  device_name: desk-light-switch
+  friendly_name: "Bouton applique bureau"
+
+  # Relay 1 — contrôlé par HA (switch_relay: false), restaure son état au reboot
+  relay_1_restore_mode: RESTORE_DEFAULT_ON
+
+  # Capteur HA utilisé comme inhibiteur de nightlight quand absent
+  ha_away_sensor: input_boolean.away_mode
+
+  # Optionnel : décommenter + ajouter le binary_sensor HA pour activer le nightlight auto
+  # ha_night_sensor: binary_sensor.is_nighttime
+
+esphome:
+  name: ${device_name}
+  friendly_name: ${friendly_name}
+
+packages:
+  hw: github://AntorFr/esphome-tx-ultimate/packages/tx_ultimate_hw.yaml@main
+  theme_stars: github://AntorFr/esphome-tx-ultimate/packages/themes/explore_the_stars.yaml@main
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  use_address: ${device_name}.intra.sberard.fr
+  ap:
+    ssid: ${friendly_name} Fallback
+    password: !secret ap_password
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+api:
+  encryption:
+    key: !secret api_encryption
+  reboot_timeout: 15min
+
+web_server:
+
+# ── Capteur "mode absent" depuis Home Assistant ───────────────────────────────
+binary_sensor:
+  - platform: homeassistant
+    id: away_sensor
+    entity_id: ${ha_away_sensor}
+    trigger_on_initial_state: true
+
+  # Décommenter si ha_night_sensor est défini :
+  # - platform: homeassistant
+  #   id: night_sensor
+  #   entity_id: ${ha_night_sensor}
+  #   publish_initial_state: true
+
+# ── Media player + sons explore_the_stars ────────────────────────────────────
+media_player:
+  - platform: speaker
+    name: "Media Player"
+    id: mp
+    announcement_pipeline:
+      speaker: announcement_resampling_speaker
+      format: FLAC
+      num_channels: 1
+    media_pipeline:
+      speaker: media_resampling_speaker
+      format: FLAC
+      num_channels: 1
+    volume_increment: 0.05
+    volume_min: 0.4
+    volume_max: 1.0
+    files:
+      - id: sound_click
+        file: https://raw.githubusercontent.com/AntorFr/esphome-projects/refs/heads/master/sounds/tx_ultimate/explore_the_stars/clic.flac
+      - id: sound_long_press
+        file: https://raw.githubusercontent.com/AntorFr/esphome-projects/refs/heads/master/sounds/tx_ultimate/explore_the_stars/long_press.flac
+      - id: sound_multi_press
+        file: https://raw.githubusercontent.com/AntorFr/esphome-projects/refs/heads/master/sounds/tx_ultimate/explore_the_stars/multi_press.flac
+      - id: sound_slide
+        file: https://raw.githubusercontent.com/AntorFr/esphome-projects/refs/heads/master/sounds/tx_ultimate/explore_the_stars/slide.flac
+
+# ── Composant switch principal ────────────────────────────────────────────────
+tx_ultimate_switch:
+  id: tx
+  button_count: 1
+
+  buttons:
+    - switch_relay: false   # le relay est contrôlé par HA, pas par le toucher
+      relay: relay_1
+
+  leds: leds
+  leds_top: leds_top
+  leds_nightlight: leds_nightlight
+  leds_buttons:
+    - leds_button_right
+
+  vibra: vibra
+  media_player: mp
+  api_connected: api_connected
+
+  nightlight:
+    # sensor: night_sensor   # décommenter si ha_night_sensor est configuré
+    away_sensor: away_sensor   # désactive le nightlight quand absent
+
+  active_theme: "Explore the Stars"
+
+  sound_packs:
+    - name: explore_the_stars
+      click: sound_click
+      long_press: sound_long_press
+      multi_press: sound_multi_press
+      slide: sound_slide
+
+  button_on_time: 500ms
+  touch_led_duration: 6s
+

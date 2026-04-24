@@ -24,6 +24,11 @@ substitutions:
   audio_bclk_pin: GPIO2
   audio_sdata_pin: GPIO15
 
+  # Relay restore modes — override in device YAML if needed
+  relay_1_restore_mode: RESTORE_DEFAULT_OFF
+  relay_2_restore_mode: RESTORE_DEFAULT_OFF
+  relay_3_restore_mode: RESTORE_DEFAULT_OFF
+
 esp32:
   board: esp32dev
   framework:
@@ -154,19 +159,19 @@ light:
     platform: binary
     name: "L1"
     output: l1_output
-    restore_mode: RESTORE_DEFAULT_OFF
+    restore_mode: ${relay_1_restore_mode}
 
   - id: relay_2
     platform: binary
     name: "L2"
     output: l2_output
-    restore_mode: RESTORE_DEFAULT_OFF
+    restore_mode: ${relay_2_restore_mode}
 
   - id: relay_3
     platform: binary
     name: "L3"
     output: l3_output
-    restore_mode: RESTORE_DEFAULT_OFF
+    restore_mode: ${relay_3_restore_mode}
 
   # ── LED strip ──────────────────────────────────────────────────────────────
   - id: leds
