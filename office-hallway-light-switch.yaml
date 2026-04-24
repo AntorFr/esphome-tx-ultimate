@@ -1,6 +1,7 @@
 substitutions:
   device_name: office-hallway-light-switch
   friendly_name: "Bouton couloir bureau"
+  area: "Bureau"
 
   # Relay 1 -- reste ON en permanence pour alimenter l'ampoule connectee (ex. Hue)
   relay_1_restore_mode: RESTORE_DEFAULT_ON
@@ -8,9 +9,13 @@ substitutions:
   # Capteur HA utilise comme inhibiteur de nightlight quand absent
   ha_away_sensor: input_boolean.away_mode
 
+  # ESP-NOW — MAC WiFi de office-light-switch (receiver)
+  espnow_peer_mac: "54:43:B2:71:BB:38"   # MAC de office-light-switch
+
 esphome:
   name: ${device_name}
   friendly_name: ${friendly_name}
+  area: ${area}
 
 packages:
   hw:
@@ -44,6 +49,31 @@ api:
   reboot_timeout: 15min
 
 web_server:
+
+# ── ESP-NOW fallback : envoie les commandes à office-light-switch (relay_2) ────────
+external_components:
+  - source:
+      type: git
+      url: https://github.com/AntorFr/esphome-espnow
+      ref: main
+    refresh: 0s
+    components: [espnow_sender]
+
+espnow_sender:
+  id: espnow_tx
+  peer_mac: ${espnow_peer_mac}
+  connectivity_sensor_id: api_connected
+  fallback_timeout: 30s
+  recovery_timeout: 10s
+  action: toggle
+  on_fallback_enter:
+    - light.turn_on: {id: leds_top, effect: "Scan"}
+  on_fallback_exit:
+    - light.turn_on: {id: leds_top}
+
+tx_ultimate_touch:
+  on_release:
+    - lambda: id(espnow_tx).send_command(true);
 
 binary_sensor:
   - platform: homeassistant

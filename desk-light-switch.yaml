@@ -73,11 +73,10 @@ espnow_sender:
   on_fallback_enter:
     - light.turn_on:
         id: leds_top
-        effect: "Blink"
+        effect: "Scan"
   on_fallback_exit:
     - light.turn_on:
         id: leds_top
-        effect: "None"
 
 # Déclenche send_command() au release du bouton (no-op en mode normal)
 tx_ultimate_touch:
