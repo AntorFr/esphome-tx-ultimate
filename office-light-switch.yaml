@@ -1,15 +1,10 @@
 substitutions:
-  device_name: desk-light-switch
-  friendly_name: "Bouton applique bureau"
+  device_name: office-light-switch
+  friendly_name: "Bouton lumiere bureau"
 
-  # Relay 1 — reste ON en permanence pour alimenter l'ampoule connectée (ex. Hue)
-  relay_1_restore_mode: RESTORE_DEFAULT_ON
-
-  # Capteur HA utilisé comme inhibiteur de nightlight quand absent
+  # Capteur HA utilise comme inhibiteur de nightlight quand absent
   ha_away_sensor: input_boolean.away_mode
 
-  # Optionnel : décommenter + ajouter le binary_sensor HA pour activer le nightlight auto
-  # ha_night_sensor: binary_sensor.is_nighttime
 
 esphome:
   name: ${device_name}
@@ -48,20 +43,17 @@ api:
 
 web_server:
 
-# ── Capteur "mode absent" depuis Home Assistant ───────────────────────────────
 binary_sensor:
   - platform: homeassistant
     id: away_sensor
     entity_id: ${ha_away_sensor}
     trigger_on_initial_state: true
 
-  # Décommenter si ha_night_sensor est défini :
-  # - platform: homeassistant
-  #   id: night_sensor
-  #   entity_id: ${ha_night_sensor}
-  #   publish_initial_state: true
+  # Swipe gauche : allume relay_2 pendant 30s (minuterie veilleuse)
+  - id: !extend swipe_left
+    on_press:
+      - script.execute: swipe_left_timer
 
-# ── Media player + sons explore_the_stars ────────────────────────────────────
 media_player:
   - platform: speaker
     name: "Media Player"
@@ -87,20 +79,27 @@ media_player:
       - id: sound_slide
         file: https://raw.githubusercontent.com/AntorFr/esphome-projects/refs/heads/master/sounds/tx_ultimate/explore_the_stars/slide.flac
 
-# ── Composant switch principal ────────────────────────────────────────────────
 tx_ultimate_switch:
   id: tx
-  button_count: 1
+  button_count: 3
 
   buttons:
-    button_1:               # bouton unique (droite)
-      switch_relay: false   # relay toujours ON — ampoule connectée (ex. Hue) alimentée en permanence
-      relay: relay_1        # c'est HA qui pilote l'ampoule, pas le relay
+    button_1:
+      switch_relay: true
+      relay: relay_2
+    button_2:
+      switch_relay: true
+      relay: relay_1
+    button_3:
+      switch_relay: true
+      relay: relay_3
 
   leds: leds
   leds_top: leds_top
   leds_nightlight: leds_nightlight
   leds_buttons:
+    - leds_button_left
+    - leds_button_middle
     - leds_button_right
 
   vibra: vibra
@@ -108,8 +107,7 @@ tx_ultimate_switch:
   api_connected: api_connected
 
   nightlight:
-    # sensor: night_sensor   # décommenter si ha_night_sensor est configuré
-    away_sensor: away_sensor   # désactive le nightlight quand absent
+    away_sensor: away_sensor
 
   active_theme: "Explore the Stars"
 
@@ -120,3 +118,10 @@ tx_ultimate_switch:
       multi_press: sound_multi_press
       slide: sound_slide
 
+script:
+  - id: swipe_left_timer
+    mode: restart
+    then:
+      - light.turn_on: relay_2
+      - delay: 30s
+      - light.turn_off: relay_2

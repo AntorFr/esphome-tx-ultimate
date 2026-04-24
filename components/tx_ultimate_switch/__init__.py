@@ -122,6 +122,23 @@ BUTTON_SCHEMA = cv.Schema(
     }
 )
 
+# Named button keys in physical order (left → middle → right)
+_BUTTON_KEYS_ORDERED = ["button_1", "button_2", "button_3"]
+
+
+def _normalize_buttons(value):
+    """Accept either a positional list or a named dict (button_1/button_2/button_3)."""
+    if isinstance(value, list):
+        return value
+    if isinstance(value, dict):
+        unknown = set(value.keys()) - set(_BUTTON_KEYS_ORDERED)
+        if unknown:
+            raise cv.Invalid(
+                f"Unknown button key(s): {unknown}. Valid keys: button_1, button_2, button_3."
+            )
+        return [value[key] for key in _BUTTON_KEYS_ORDERED if key in value]
+    raise cv.Invalid("buttons must be a list or a mapping with button_1/button_2/button_3 keys")
+
 NIGHTLIGHT_SCHEMA = cv.Schema(
     {
         cv.Optional(CONF_NIGHT_SENSOR): cv.use_id(binary_sensor.BinarySensor),
@@ -144,7 +161,10 @@ CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(TxUltimateSwitch),
         cv.Optional(CONF_BUTTON_COUNT, default=3): cv.int_range(min=1, max=3),
-        cv.Optional(CONF_BUTTONS, default=[]): cv.ensure_list(BUTTON_SCHEMA),
+        cv.Optional(CONF_BUTTONS, default=[]): cv.All(
+            _normalize_buttons,
+            cv.ensure_list(BUTTON_SCHEMA),
+        ),
         cv.Required(CONF_LEDS): cv.use_id(light.LightState),
         cv.Required(CONF_LEDS_TOP): cv.use_id(light.LightState),
         cv.Required(CONF_LEDS_NIGHTLIGHT): cv.use_id(light.LightState),
