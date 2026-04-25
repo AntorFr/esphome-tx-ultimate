@@ -51,7 +51,9 @@ void TxUltimateSwitch::dump_config() {  ESP_LOGCONFIG(TAG, "TX Ultimate Switch:"
   ESP_LOGCONFIG(TAG, "  Night sensor: %s", night_sensor_ != nullptr ? "configured" : "not configured");
   ESP_LOGCONFIG(TAG, "  Sleep sensor: %s", sleep_sensor_ != nullptr ? "configured" : "not configured");
   ESP_LOGCONFIG(TAG, "  Away sensor:  %s", away_sensor_  != nullptr ? "configured" : "not configured");
-  ESP_LOGCONFIG(TAG, "  Is bedroom:   %s", is_bedroom_ ? "yes" : "no");
+  ESP_LOGCONFIG(TAG, "  Room type:    %s",
+                room_type_ == RoomType::BEDROOM ? "bedroom" :
+                room_type_ == RoomType::DARK    ? "dark"    : "standard");
 }
 
 // ── Loop (relay state change detection) ──────────────────────────────────────
@@ -138,7 +140,7 @@ void TxUltimateSwitch::apply_nightlight_led_() {
 
   const Color3     &color      = (nightlight_mode_ == NightlightMode::SLEEP) ? t->sleep_color      : t->nightlight_color;
   float             brightness  = (nightlight_mode_ == NightlightMode::SLEEP) ? t->sleep_brightness : t->nightlight_brightness;
-  const std::string effect      = (nightlight_mode_ == NightlightMode::SLEEP) ? std::string("None") : t->nightlight_effect;
+  const std::string &effect     = (nightlight_mode_ == NightlightMode::SLEEP) ? t->sleep_effect     : t->nightlight_effect;
 
   call.set_brightness(brightness);
   call.set_red(color.r / 100.0f);
@@ -168,7 +170,7 @@ void TxUltimateSwitch::apply_button_led_(uint8_t idx, bool relay_on) {
     // Button OFF + nightlight active: mirror the active nightlight colour on button LED
     const Color3     &nl_color      = (nightlight_mode_ == NightlightMode::SLEEP) ? t->sleep_color      : t->nightlight_color;
     float             nl_brightness  = (nightlight_mode_ == NightlightMode::SLEEP) ? t->sleep_brightness : t->nightlight_brightness;
-    const std::string nl_effect      = (nightlight_mode_ == NightlightMode::SLEEP) ? std::string("None") : t->nightlight_effect;
+    const std::string &nl_effect     = (nightlight_mode_ == NightlightMode::SLEEP) ? t->sleep_effect     : t->nightlight_effect;
 
     call.set_brightness(nl_brightness);
     call.set_red(nl_color.r / 100.0f);

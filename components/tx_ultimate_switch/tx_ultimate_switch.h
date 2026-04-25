@@ -28,7 +28,14 @@ struct Color3 {
 enum class NightlightMode : uint8_t {
   OFF    = 0,  ///< LED off (day, away, or bedroom during sleep)
   NORMAL = 1,  ///< Normal nightlight colour+effect from theme
-  SLEEP  = 2,  ///< Non-bedroom sleep: dim guide colour (no effect) from theme
+  SLEEP  = 2,  ///< Non-bedroom sleep: dim guide colour from theme
+};
+
+// ── Room type ───────────────────────────────────────────────────────────────
+enum class RoomType : uint8_t {
+  STANDARD = 0,  ///< Normal: nightlight follows night_sensor; sleep_sensor → SLEEP guide
+  BEDROOM  = 1,  ///< Bedroom: sleep_sensor active → LED OFF (don’t wake sleeper)
+  DARK     = 2,  ///< No windows: nightlight always ON; sleep/away still respected
 };
 
 // ── One visual theme ─────────────────────────────────────────────────────────
@@ -47,6 +54,7 @@ struct Theme {
   // Sleep guide color (non-bedroom: dim locator while household sleeps)
   Color3 sleep_color;
   float  sleep_brightness{0.1f};
+  std::string sleep_effect{"None"};
 
   // Touch feedback (top LEDs)
   Color3 touch_color;
@@ -117,9 +125,8 @@ class TxUltimateSwitch : public Component {
   void set_night_sensor(binary_sensor::BinarySensor *s) { night_sensor_ = s; }
   void set_sleep_sensor(binary_sensor::BinarySensor *s) { sleep_sensor_ = s; }
   void set_away_sensor(binary_sensor::BinarySensor *s) { away_sensor_ = s; }
-  // is_bedroom: sleep_sensor active → LED OFF (don't wake sleeper);
-  //             otherwise → LED ON with sleep guide colour
-  void set_is_bedroom(bool b) { is_bedroom_ = b; }
+  // room_type drives nightlight behaviour (see RoomType enum)
+  void set_room_type(RoomType rt) { room_type_ = rt; }
 
   // Select exposed in HA for theme switching
   void set_theme_select(select::Select *s) { theme_select_ = s; }
@@ -200,7 +207,7 @@ class TxUltimateSwitch : public Component {
   std::string initial_theme_{"Default"};
 
   NightlightMode nightlight_mode_{NightlightMode::OFF};
-  bool is_bedroom_{false};
+  RoomType room_type_{RoomType::STANDARD};
   bool touch_led_active_{false};
   uint32_t touch_led_start_ms_{0};
   uint32_t button_on_time_ms_{500};

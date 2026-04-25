@@ -28,7 +28,7 @@ packages:
     url: https://github.com/AntorFr/esphome-tx-ultimate
     ref: main
     files:
-      - packages/themes/default_themes.yaml
+      - packages/themes/default.yaml
     refresh: 0s
 
 wifi:

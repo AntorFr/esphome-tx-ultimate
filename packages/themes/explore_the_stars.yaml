@@ -11,6 +11,7 @@ tx_ultimate_switch:
       nightlight_effect: "Stars"
       sleep_color: [60, 0, 0]       # rouge doux — repère de nuit sans gêner le sommeil
       sleep_brightness: 0.08
+      sleep_effect: "None"
       touch_color: [0, 50, 100]
       touch_brightness: 1.0
       touch_effect: "Scan"
