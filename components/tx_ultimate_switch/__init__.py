@@ -77,7 +77,8 @@ tx_ultimate_switch_ns = cg.esphome_ns.namespace("tx_ultimate_switch")
 TxUltimateSwitch = tx_ultimate_switch_ns.class_("TxUltimateSwitch", cg.Component)
 Theme = tx_ultimate_switch_ns.struct("Theme")
 Color3 = tx_ultimate_switch_ns.struct("Color3")
-SoundPack = tx_ultimate_switch_ns.struct("SoundPack")RoomType = tx_ultimate_switch_ns.enum("RoomType")
+SoundPack = tx_ultimate_switch_ns.struct("SoundPack")
+RoomType = tx_ultimate_switch_ns.enum("RoomType")
 
 ROOM_TYPE_OPTIONS = {
     "standard": RoomType.STANDARD,
