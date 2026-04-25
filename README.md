@@ -136,9 +136,18 @@ When `switch_relay: false`, the relay is forced ON at boot and the button only f
 ```yaml
 nightlight:
   sensor: night_sensor        # required — HA binary sensor that is ON at night
-  sleep_sensor: sleep_sensor  # optional — mutes sounds + disables nightlight
+  sleep_sensor: sleep_sensor  # optional — mutes sounds; behaviour depends on room_type
   away_sensor: away_sensor    # optional — disables nightlight when away
+  room_type: standard         # standard | bedroom | dark (default: standard)
 ```
+
+#### `room_type` values
+
+| Value | Nightlight behaviour |
+|-------|---------------------|
+| `standard` | Nightlight follows `sensor`; when `sleep_sensor` is ON → sleep colour/effect guide |
+| `bedroom` | Nightlight follows `sensor`; when `sleep_sensor` is ON → LED off (do not disturb) |
+| `dark` | Nightlight always ON (room has no windows); sleep/away sensors still respected |
 
 ---
 
@@ -170,6 +179,9 @@ tx_ultimate_switch:
       multi_touch_color: [0, 0, 0]
       multi_touch_brightness: 1.0
       multi_touch_effect: "Rainbow"
+      sleep_color: [60, 0, 0]             # nightlight colour in sleep mode
+      sleep_brightness: 0.08
+      sleep_effect: "None"
       sound: explore_the_stars            # sound pack name
 ```
 
