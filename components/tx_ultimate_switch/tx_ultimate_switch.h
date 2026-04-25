@@ -24,6 +24,13 @@ struct Color3 {
   uint8_t r{0}, g{0}, b{100};
 };
 
+// ── Nightlight display mode ───────────────────────────────────────────────────
+enum class NightlightMode : uint8_t {
+  OFF    = 0,  ///< LED off (day, away, or bedroom during sleep)
+  NORMAL = 1,  ///< Normal nightlight colour+effect from theme
+  SLEEP  = 2,  ///< Non-bedroom sleep: dim guide colour (no effect) from theme
+};
+
 // ── One visual theme ─────────────────────────────────────────────────────────
 struct Theme {
   std::string name;
@@ -32,10 +39,14 @@ struct Theme {
   Color3 button_color;
   float  button_brightness{0.7f};
 
-  // Nightlight
+  // Nightlight (normal mode)
   Color3 nightlight_color;
   float  nightlight_brightness{0.2f};
   std::string nightlight_effect{"None"};
+
+  // Sleep guide color (non-bedroom: dim locator while household sleeps)
+  Color3 sleep_color;
+  float  sleep_brightness{0.1f};
 
   // Touch feedback (top LEDs)
   Color3 touch_color;
@@ -106,6 +117,9 @@ class TxUltimateSwitch : public Component {
   void set_night_sensor(binary_sensor::BinarySensor *s) { night_sensor_ = s; }
   void set_sleep_sensor(binary_sensor::BinarySensor *s) { sleep_sensor_ = s; }
   void set_away_sensor(binary_sensor::BinarySensor *s) { away_sensor_ = s; }
+  // is_bedroom: sleep_sensor active → LED OFF (don't wake sleeper);
+  //             otherwise → LED ON with sleep guide colour
+  void set_is_bedroom(bool b) { is_bedroom_ = b; }
 
   // Select exposed in HA for theme switching
   void set_theme_select(select::Select *s) { theme_select_ = s; }
@@ -151,7 +165,7 @@ class TxUltimateSwitch : public Component {
 
  protected:
   // ── Internal helpers ─────────────────────────────────────────────────────────
-  bool nightlight_should_be_on_() const;
+  NightlightMode compute_nightlight_mode_() const;
   void refresh_nightlight_();
   void refresh_led_default_();
   void apply_touch_led_(const Color3 &color, float brightness, const std::string &effect);
@@ -185,7 +199,8 @@ class TxUltimateSwitch : public Component {
   std::vector<SoundPack> sound_packs_;
   std::string initial_theme_{"Default"};
 
-  bool nightlight_on_{false};
+  NightlightMode nightlight_mode_{NightlightMode::OFF};
+  bool is_bedroom_{false};
   bool touch_led_active_{false};
   uint32_t touch_led_start_ms_{0};
   uint32_t button_on_time_ms_{500};

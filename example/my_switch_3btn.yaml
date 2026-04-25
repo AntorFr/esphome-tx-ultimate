@@ -121,6 +121,8 @@ tx_ultimate_switch:
     sensor: night_sensor
     sleep_sensor: sleep_sensor
     away_sensor: away_sensor
+    # is_bedroom: false   # true  → LED éteinte quand sleep_sensor actif (chambre : ne pas déranger)
+    #                     # false → LED allumée en sleep_color quand sleep_sensor actif (couloir : repère)
 
   # Themes are merged from the packages above.
   # The active_theme sets the default theme; user can switch via the HA select entity.

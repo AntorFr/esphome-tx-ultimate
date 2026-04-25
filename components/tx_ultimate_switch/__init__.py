@@ -33,6 +33,7 @@ CONF_TOUCH_LED_DURATION = "touch_led_duration"
 CONF_NIGHT_SENSOR = "sensor"
 CONF_SLEEP_SENSOR = "sleep_sensor"
 CONF_AWAY_SENSOR = "away_sensor"
+CONF_IS_BEDROOM = "is_bedroom"
 
 # Button keys
 CONF_SWITCH_RELAY = "switch_relay"
@@ -44,6 +45,8 @@ CONF_BUTTON_BRIGHTNESS = "button_brightness"
 CONF_NIGHTLIGHT_COLOR = "nightlight_color"
 CONF_NIGHTLIGHT_BRIGHTNESS = "nightlight_brightness"
 CONF_NIGHTLIGHT_EFFECT = "nightlight_effect"
+CONF_SLEEP_COLOR = "sleep_color"
+CONF_SLEEP_BRIGHTNESS = "sleep_brightness"
 CONF_TOUCH_COLOR = "touch_color"
 CONF_TOUCH_BRIGHTNESS = "touch_brightness"
 CONF_TOUCH_EFFECT = "touch_effect"
@@ -96,6 +99,8 @@ THEME_SCHEMA = cv.Schema(
         cv.Optional(CONF_NIGHTLIGHT_COLOR, default=[80, 70, 0]): COLOR_SCHEMA,
         cv.Optional(CONF_NIGHTLIGHT_BRIGHTNESS, default=0.2): cv.percentage,
         cv.Optional(CONF_NIGHTLIGHT_EFFECT, default="None"): cv.string,
+        cv.Optional(CONF_SLEEP_COLOR, default=[80, 0, 0]): COLOR_SCHEMA,
+        cv.Optional(CONF_SLEEP_BRIGHTNESS, default=0.1): cv.percentage,
         cv.Optional(CONF_TOUCH_COLOR, default=[0, 100, 100]): COLOR_SCHEMA,
         cv.Optional(CONF_TOUCH_BRIGHTNESS, default=1.0): cv.percentage,
         cv.Optional(CONF_TOUCH_EFFECT, default="Scan"): cv.string,
@@ -144,6 +149,9 @@ NIGHTLIGHT_SCHEMA = cv.Schema(
         cv.Optional(CONF_NIGHT_SENSOR): cv.use_id(binary_sensor.BinarySensor),
         cv.Optional(CONF_SLEEP_SENSOR): cv.use_id(binary_sensor.BinarySensor),
         cv.Optional(CONF_AWAY_SENSOR): cv.use_id(binary_sensor.BinarySensor),
+        # is_bedroom=true  → LED OFF while sleep_sensor active (don't wake sleeper)
+        # is_bedroom=false → LED ON with sleep guide colour while sleep_sensor active
+        cv.Optional(CONF_IS_BEDROOM, default=False): cv.boolean,
     }
 )
 
@@ -245,6 +253,7 @@ async def to_code(config):
         if CONF_AWAY_SENSOR in nl_cfg:
             aws = await cg.get_variable(nl_cfg[CONF_AWAY_SENSOR])
             cg.add(var.set_away_sensor(aws))
+        cg.add(var.set_is_bedroom(nl_cfg[CONF_IS_BEDROOM]))
 
     # Timings
     cg.add(var.set_button_on_time_ms(config[CONF_BUTTON_ON_TIME]))
@@ -262,6 +271,8 @@ async def to_code(config):
             ("nightlight_color", _make_color3(t_cfg[CONF_NIGHTLIGHT_COLOR])),
             ("nightlight_brightness", t_cfg[CONF_NIGHTLIGHT_BRIGHTNESS]),
             ("nightlight_effect", t_cfg[CONF_NIGHTLIGHT_EFFECT]),
+            ("sleep_color", _make_color3(t_cfg[CONF_SLEEP_COLOR])),
+            ("sleep_brightness", t_cfg[CONF_SLEEP_BRIGHTNESS]),
             ("touch_color", _make_color3(t_cfg[CONF_TOUCH_COLOR])),
             ("touch_brightness", t_cfg[CONF_TOUCH_BRIGHTNESS]),
             ("touch_effect", t_cfg[CONF_TOUCH_EFFECT]),

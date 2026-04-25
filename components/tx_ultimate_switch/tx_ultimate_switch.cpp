@@ -51,6 +51,7 @@ void TxUltimateSwitch::dump_config() {  ESP_LOGCONFIG(TAG, "TX Ultimate Switch:"
   ESP_LOGCONFIG(TAG, "  Night sensor: %s", night_sensor_ != nullptr ? "configured" : "not configured");
   ESP_LOGCONFIG(TAG, "  Sleep sensor: %s", sleep_sensor_ != nullptr ? "configured" : "not configured");
   ESP_LOGCONFIG(TAG, "  Away sensor:  %s", away_sensor_  != nullptr ? "configured" : "not configured");
+  ESP_LOGCONFIG(TAG, "  Is bedroom:   %s", is_bedroom_ ? "yes" : "no");
 }
 
 // ── Loop (relay state change detection) ──────────────────────────────────────
@@ -69,25 +70,32 @@ void TxUltimateSwitch::loop() {
 
 // ── Nightlight logic ──────────────────────────────────────────────────────────
 
-bool TxUltimateSwitch::nightlight_should_be_on_() const {
-  // night_sensor is REQUIRED — if not configured, nightlight is never active
-  if (night_sensor_ == nullptr) return false;
-  if (!night_sensor_->state) return false;
+NightlightMode TxUltimateSwitch::compute_nightlight_mode_() const {
+  // night_sensor is REQUIRED — if not configured or not active, no nightlight
+  if (night_sensor_ == nullptr || !night_sensor_->state)
+    return NightlightMode::OFF;
 
-  // sleep_sensor is optional inhibitor — if configured and ON, nightlight off
-  if (sleep_sensor_ != nullptr && sleep_sensor_->state) return false;
+  // away_sensor: nightlight off when nobody is home
+  if (away_sensor_ != nullptr && away_sensor_->state)
+    return NightlightMode::OFF;
 
-  // away_sensor is optional inhibitor — if configured and ON, nightlight off
-  if (away_sensor_ != nullptr && away_sensor_->state) return false;
+  // sleep_sensor: someone in the household is asleep
+  if (sleep_sensor_ != nullptr && sleep_sensor_->state) {
+    // Bedroom → turn off completely so sleeper isn’t disturbed
+    // Hallway/other → dim guide colour to help navigation without waking anyone
+    return is_bedroom_ ? NightlightMode::OFF : NightlightMode::SLEEP;
+  }
 
-  return true;
+  return NightlightMode::NORMAL;
 }
 
 void TxUltimateSwitch::refresh_nightlight_() {
-  bool should_be_on = nightlight_should_be_on_();
-  if (nightlight_on_ != should_be_on) {
-    nightlight_on_ = should_be_on;
-    ESP_LOGD(TAG, "Nightlight: %s", nightlight_on_ ? "ON" : "OFF");
+  NightlightMode mode = compute_nightlight_mode_();
+  if (nightlight_mode_ != mode) {
+    nightlight_mode_ = mode;
+    ESP_LOGD(TAG, "Nightlight mode: %s",
+             mode == NightlightMode::OFF   ? "OFF"   :
+             mode == NightlightMode::SLEEP ? "SLEEP" : "NORMAL");
   }
   refresh_led_default_();
 }
@@ -104,7 +112,7 @@ void TxUltimateSwitch::refresh_led_default_() {
   }
 
   // Nightlight zone
-  if (nightlight_on_) {
+  if (nightlight_mode_ != NightlightMode::OFF) {
     apply_nightlight_led_();
   } else {
     if (leds_nightlight_ != nullptr) {
@@ -127,12 +135,17 @@ void TxUltimateSwitch::apply_nightlight_led_() {
   if (t == nullptr || leds_nightlight_ == nullptr) return;
 
   auto call = leds_nightlight_->turn_on();
-  call.set_brightness(t->nightlight_brightness);
-  call.set_red(t->nightlight_color.r / 100.0f);
-  call.set_green(t->nightlight_color.g / 100.0f);
-  call.set_blue(t->nightlight_color.b / 100.0f);
-  if (!t->nightlight_effect.empty() && t->nightlight_effect != "None") {
-    call.set_effect(t->nightlight_effect);
+
+  const Color3     &color      = (nightlight_mode_ == NightlightMode::SLEEP) ? t->sleep_color      : t->nightlight_color;
+  float             brightness  = (nightlight_mode_ == NightlightMode::SLEEP) ? t->sleep_brightness : t->nightlight_brightness;
+  const std::string effect      = (nightlight_mode_ == NightlightMode::SLEEP) ? std::string("None") : t->nightlight_effect;
+
+  call.set_brightness(brightness);
+  call.set_red(color.r / 100.0f);
+  call.set_green(color.g / 100.0f);
+  call.set_blue(color.b / 100.0f);
+  if (!effect.empty() && effect != "None") {
+    call.set_effect(effect);
   } else {
     call.set_effect("None");
   }
@@ -151,14 +164,18 @@ void TxUltimateSwitch::apply_button_led_(uint8_t idx, bool relay_on) {
     call.set_green(t->button_color.g / 100.0f);
     call.set_blue(t->button_color.b / 100.0f);
     call.set_effect("None");
-  } else if (nightlight_on_) {
-    // Button OFF + nightlight active: show nightlight colour on button LED
-    call.set_brightness(t->nightlight_brightness);
-    call.set_red(t->nightlight_color.r / 100.0f);
-    call.set_green(t->nightlight_color.g / 100.0f);
-    call.set_blue(t->nightlight_color.b / 100.0f);
-    if (!t->nightlight_effect.empty() && t->nightlight_effect != "None") {
-      call.set_effect(t->nightlight_effect);
+  } else if (nightlight_mode_ != NightlightMode::OFF) {
+    // Button OFF + nightlight active: mirror the active nightlight colour on button LED
+    const Color3     &nl_color      = (nightlight_mode_ == NightlightMode::SLEEP) ? t->sleep_color      : t->nightlight_color;
+    float             nl_brightness  = (nightlight_mode_ == NightlightMode::SLEEP) ? t->sleep_brightness : t->nightlight_brightness;
+    const std::string nl_effect      = (nightlight_mode_ == NightlightMode::SLEEP) ? std::string("None") : t->nightlight_effect;
+
+    call.set_brightness(nl_brightness);
+    call.set_red(nl_color.r / 100.0f);
+    call.set_green(nl_color.g / 100.0f);
+    call.set_blue(nl_color.b / 100.0f);
+    if (!nl_effect.empty() && nl_effect != "None") {
+      call.set_effect(nl_effect);
     } else {
       call.set_effect("None");
     }

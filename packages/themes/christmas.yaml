@@ -9,6 +9,8 @@ tx_ultimate_switch:
       nightlight_color: [0, 60, 0]
       nightlight_brightness: 0.3
       nightlight_effect: "Christmas"
+      sleep_color: [60, 0, 0]       # rouge doux — repère de nuit sans gêner le sommeil
+      sleep_brightness: 0.08
       touch_color: [100, 50, 0]
       touch_brightness: 1.0
       touch_effect: "Scan"
