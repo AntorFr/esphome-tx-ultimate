@@ -24,11 +24,11 @@ packages:
     files:
       - packages/tx_ultimate_hw.yaml
     refresh: 0s
-  theme_stars:
+  themes:
     url: https://github.com/AntorFr/esphome-tx-ultimate
     ref: main
     files:
-      - packages/themes/explore_the_stars.yaml
+      - packages/themes/default_themes.yaml
     refresh: 0s
 
 wifi:
