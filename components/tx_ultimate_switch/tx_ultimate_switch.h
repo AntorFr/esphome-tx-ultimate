@@ -97,8 +97,9 @@ struct SoundPack {
 // ── Button config ─────────────────────────────────────────────────────────────
 struct ButtonConfig {
   bool switch_relay{true};
-  light::LightState *relay{nullptr};  // set by codegen
-  bool last_relay_state{false};       // tracked in loop() for LED refresh
+  light::LightState *relay{nullptr};            // set by codegen
+  binary_sensor::BinarySensor *state_sensor{nullptr};  // external state (switch_relay:false)
+  bool last_relay_state{false};                 // tracked in loop() for LED refresh
 };
 
 // ── Main component ────────────────────────────────────────────────────────────
@@ -109,6 +110,10 @@ class TxUltimateSwitch : public Component {
 
   void add_button(bool switch_relay, light::LightState *relay) {
     buttons_.push_back({switch_relay, relay});
+  }
+
+  void set_button_state_sensor(uint8_t idx, binary_sensor::BinarySensor *s) {
+    if (idx < buttons_.size()) buttons_[idx].state_sensor = s;
   }
 
   void set_leds(light::LightState *leds) { leds_ = leds; }

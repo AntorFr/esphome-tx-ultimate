@@ -38,6 +38,7 @@ CONF_ROOM_TYPE = "room_type"
 # Button keys
 CONF_SWITCH_RELAY = "switch_relay"
 CONF_RELAY = "relay"
+CONF_STATE_SENSOR = "state_sensor"
 
 # Theme keys
 CONF_BUTTON_COLOR = "button_color"
@@ -132,6 +133,7 @@ BUTTON_SCHEMA = cv.Schema(
     {
         cv.Optional(CONF_SWITCH_RELAY, default=True): cv.boolean,
         cv.Optional(CONF_RELAY): cv.use_id(light.LightState),
+        cv.Optional(CONF_STATE_SENSOR): cv.use_id(binary_sensor.BinarySensor),
     }
 )
 
@@ -223,11 +225,14 @@ async def to_code(config):
     cg.add(var.set_button_count(config[CONF_BUTTON_COUNT]))
 
     # Buttons
-    for btn_cfg in config[CONF_BUTTONS]:
+    for idx, btn_cfg in enumerate(config[CONF_BUTTONS]):
         relay = None
         if CONF_RELAY in btn_cfg:
             relay = await cg.get_variable(btn_cfg[CONF_RELAY])
         cg.add(var.add_button(btn_cfg[CONF_SWITCH_RELAY], relay))
+        if CONF_STATE_SENSOR in btn_cfg:
+            state_s = await cg.get_variable(btn_cfg[CONF_STATE_SENSOR])
+            cg.add(var.set_button_state_sensor(idx, state_s))
 
     # LED lights
     leds = await cg.get_variable(config[CONF_LEDS])

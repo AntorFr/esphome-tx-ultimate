@@ -123,6 +123,12 @@ See [example/my_switch_3btn.yaml](example/my_switch_3btn.yaml).
 
 ### Button config
 
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `switch_relay` | bool | `true` | `true` = button toggles the relay; `false` = relay stays ON, button fires touch event only |
+| `relay` | light id | — | Binary output light driving the relay |
+| `state_sensor` | binary_sensor id | — | External state source for button LED feedback (useful when `switch_relay: false`) |
+
 ```yaml
 buttons:
   - switch_relay: true    # true = button controls the relay
@@ -130,6 +136,22 @@ buttons:
 ```
 
 When `switch_relay: false`, the relay is forced ON at boot and the button only fires the touch event (use for scenes/scripts via HA automations).
+
+When `switch_relay: false`, you can still get button LED state feedback by providing a `state_sensor` — a binary sensor whose state mirrors the controlled device (e.g. a Hue light polled from Home Assistant):
+
+```yaml
+binary_sensor:
+  - platform: homeassistant
+    id: hue_light_state
+    entity_id: light.office_hue   # HA exposes lights as binary sensors (on/off)
+
+tx_ultimate_switch:
+  buttons:
+    button_1:
+      switch_relay: false
+      relay: relay_1
+      state_sensor: hue_light_state   # drives button LED feedback
+```
 
 ### Nightlight config
 
@@ -168,7 +190,7 @@ tx_ultimate_switch:
       touch_brightness: 1.0
       touch_effect: "Scan"
       swipe_left_color: [0, 100, 0]
-      swipe_left_brightness: 1.0
+      swipe_left_brightness: 1.
       swipe_left_effect: "None"
       swipe_right_color: [100, 0, 70]
       swipe_right_brightness: 1.0

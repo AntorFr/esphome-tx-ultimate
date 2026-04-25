@@ -34,6 +34,13 @@ void TxUltimateSwitch::setup() {
   // Wire relay state callbacks
   // (state changes are detected in loop() instead of listener interface)
 
+  // Wire state sensor callbacks for non-relay buttons
+  for (auto &btn : buttons_) {
+    if (!btn.switch_relay && btn.state_sensor != nullptr) {
+      btn.state_sensor->add_on_state_callback([this](bool) { refresh_led_default_(); });
+    }
+  }
+
   // Wire theme select callback
   if (theme_select_ != nullptr) {
     theme_select_->add_on_state_callback([this](size_t) {
@@ -85,7 +92,7 @@ NightlightMode TxUltimateSwitch::compute_nightlight_mode_() const {
   if (sleep_sensor_ != nullptr && sleep_sensor_->state) {
     // Bedroom → turn off completely so sleeper isn’t disturbed
     // Hallway/other → dim guide colour to help navigation without waking anyone
-    return is_bedroom_ ? NightlightMode::OFF : NightlightMode::SLEEP;
+    return (room_type_ == RoomType::BEDROOM) ? NightlightMode::OFF : NightlightMode::SLEEP;
   }
 
   return NightlightMode::NORMAL;
@@ -126,9 +133,16 @@ void TxUltimateSwitch::refresh_led_default_() {
   // Button LEDs
   for (uint8_t i = 0; i < button_count_ && i < buttons_.size(); i++) {
     auto &btn = buttons_[i];
-    if (!btn.switch_relay || btn.relay == nullptr) continue;
-    bool relay_on = btn.relay->current_values.is_on();
-    apply_button_led_(i, relay_on);
+    bool state_on;
+    if (btn.switch_relay) {
+      if (btn.relay == nullptr) continue;
+      state_on = btn.relay->current_values.is_on();
+    } else if (btn.state_sensor != nullptr) {
+      state_on = btn.state_sensor->state;
+    } else {
+      continue;  // no state source → skip button LED
+    }
+    apply_button_led_(i, state_on);
   }
 }
 
