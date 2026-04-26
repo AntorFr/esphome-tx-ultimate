@@ -18,7 +18,6 @@ CONF_BUTTONS = "buttons"
 CONF_LEDS = "leds"
 CONF_LEDS_TOP = "leds_top"
 CONF_LEDS_NIGHTLIGHT = "leds_nightlight"
-CONF_LEDS_BUTTONS = "leds_buttons"
 CONF_VIBRA = "vibra"
 CONF_MEDIA_PLAYER = "media_player"
 CONF_NIGHTLIGHT = "nightlight"
@@ -138,11 +137,8 @@ BUTTON_SCHEMA = cv.Schema(
     }
 )
 
-# Named button keys in physical order (left → middle → right)
+# Named button keys in physical order (right → middle → left)
 _BUTTON_KEYS_ORDERED = ["button_1", "button_2", "button_3"]
-
-# Named LED button keys: right=idx0, middle=idx1, left=idx2
-_LED_BUTTON_KEYS_ORDERED = ["right", "middle", "left"]
 
 
 def _normalize_buttons(value):
@@ -158,26 +154,6 @@ def _normalize_buttons(value):
         return [value[key] for key in _BUTTON_KEYS_ORDERED if key in value]
     raise cv.Invalid("buttons must be a list or a mapping with button_1/button_2/button_3 keys")
 
-
-def _normalize_leds_buttons(value):
-    """Accept either a positional list or a named dict (right/middle/left).
-
-    Named keys map to fixed button indices: right=0, middle=1, left=2.
-    For button_count:1 provide only 'right'.
-    For button_count:2 provide 'right' and one of 'middle'/'left'.
-    For button_count:3 provide all three.
-    A positional list is also accepted for backward compatibility.
-    """
-    if isinstance(value, list):
-        return value
-    if isinstance(value, dict):
-        unknown = set(value.keys()) - set(_LED_BUTTON_KEYS_ORDERED)
-        if unknown:
-            raise cv.Invalid(
-                f"Unknown leds_buttons key(s): {unknown}. Valid keys: right, middle, left."
-            )
-        return [value[key] for key in _LED_BUTTON_KEYS_ORDERED if key in value]
-    raise cv.Invalid("leds_buttons must be a list or a mapping with right/middle/left keys")
 
 NIGHTLIGHT_SCHEMA = cv.Schema(
     {
@@ -213,11 +189,6 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Required(CONF_LEDS): cv.use_id(light.LightState),
         cv.Required(CONF_LEDS_TOP): cv.use_id(light.LightState),
         cv.Required(CONF_LEDS_NIGHTLIGHT): cv.use_id(light.LightState),
-        cv.Optional(CONF_LEDS_BUTTONS): cv.All(
-            _normalize_leds_buttons,
-            cv.ensure_list(cv.use_id(light.LightState)),
-            cv.Length(min=1, max=3),
-        ),
         cv.Optional(CONF_REVERSE, default=False): cv.boolean,
         cv.Optional(CONF_VIBRA): cv.use_id(switch.Switch),
         cv.Optional(CONF_MEDIA_PLAYER): cv.use_id(media_player.MediaPlayer),
@@ -271,12 +242,8 @@ async def to_code(config):
     cg.add(var.set_leds_top(leds_top))
     leds_nl = await cg.get_variable(config[CONF_LEDS_NIGHTLIGHT])
     cg.add(var.set_leds_nightlight(leds_nl))
-    # Resolve leds_buttons: use explicit config or default hardware IDs
-    if CONF_LEDS_BUTTONS in config:
-        led_ids = config[CONF_LEDS_BUTTONS]
-    else:
-        led_ids = _LED_BUTTON_DEFAULT_IDS[:button_count]
-    # If reverse, mirror the LED→button mapping
+    # LEDs boutons: IDs fixes du package hardware, inversés si reverse
+    led_ids = _LED_BUTTON_DEFAULT_IDS[:button_count]
     if reverse:
         led_ids = list(reversed(led_ids))
     for idx, led_id in enumerate(led_ids):
