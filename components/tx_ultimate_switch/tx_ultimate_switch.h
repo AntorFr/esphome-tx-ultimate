@@ -107,6 +107,7 @@ class TxUltimateSwitch : public Component {
  public:
   // ── Wiring setters (called by Python codegen) ───────────────────────────────
   void set_button_count(uint8_t n) { button_count_ = n; }
+  void set_reverse(bool r) { reverse_ = r; }
 
   void add_button(bool switch_relay, light::LightState *relay) {
     buttons_.push_back({switch_relay, relay});
@@ -190,6 +191,7 @@ class TxUltimateSwitch : public Component {
   void play_sound_(audio::AudioFile *file);
 
   uint8_t button_count_{3};
+  bool reverse_{false};
   std::vector<ButtonConfig> buttons_;
 
   light::LightState *leds_{nullptr};

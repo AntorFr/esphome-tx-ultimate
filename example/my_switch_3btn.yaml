@@ -108,10 +108,6 @@ tx_ultimate_switch:
   leds: leds
   leds_top: leds_top
   leds_nightlight: leds_nightlight
-  leds_buttons:
-    right: leds_button_right
-    middle: leds_button_middle
-    left: leds_button_left
 
   vibra: vibra
   media_player: media_player

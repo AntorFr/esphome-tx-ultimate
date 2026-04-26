@@ -117,13 +117,11 @@ tx_ultimate_switch:
       switch_relay: true
       relay: relay_3
 
+  reverse: true   # appareil monté à l'envers (haut→bas)
+
   leds: leds
   leds_top: leds_top
   leds_nightlight: leds_nightlight
-  leds_buttons:
-    right: leds_button_left
-    middle: leds_button_middle
-    left: leds_button_right
 
   vibra: vibra
   media_player: mp

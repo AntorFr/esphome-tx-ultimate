@@ -28,6 +28,7 @@ CONF_SOUND_PACKS = "sound_packs"
 CONF_API_CONNECTED = "api_connected"
 CONF_BUTTON_ON_TIME = "button_on_time"
 CONF_TOUCH_LED_DURATION = "touch_led_duration"
+CONF_REVERSE = "reverse"
 
 # Nightlight keys
 CONF_NIGHT_SENSOR = "sensor"
@@ -212,11 +213,12 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Required(CONF_LEDS): cv.use_id(light.LightState),
         cv.Required(CONF_LEDS_TOP): cv.use_id(light.LightState),
         cv.Required(CONF_LEDS_NIGHTLIGHT): cv.use_id(light.LightState),
-        cv.Required(CONF_LEDS_BUTTONS): cv.All(
+        cv.Optional(CONF_LEDS_BUTTONS): cv.All(
             _normalize_leds_buttons,
             cv.ensure_list(cv.use_id(light.LightState)),
             cv.Length(min=1, max=3),
         ),
+        cv.Optional(CONF_REVERSE, default=False): cv.boolean,
         cv.Optional(CONF_VIBRA): cv.use_id(switch.Switch),
         cv.Optional(CONF_MEDIA_PLAYER): cv.use_id(media_player.MediaPlayer),
         cv.Optional(CONF_NIGHTLIGHT): NIGHTLIGHT_SCHEMA,
@@ -246,8 +248,11 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
 
-    # Button count
-    cg.add(var.set_button_count(config[CONF_BUTTON_COUNT]))
+    # Button count + reverse
+    button_count = config[CONF_BUTTON_COUNT]
+    cg.add(var.set_button_count(button_count))
+    reverse = config[CONF_REVERSE]
+    cg.add(var.set_reverse(reverse))
 
     # Buttons
     for idx, btn_cfg in enumerate(config[CONF_BUTTONS]):
@@ -266,7 +271,15 @@ async def to_code(config):
     cg.add(var.set_leds_top(leds_top))
     leds_nl = await cg.get_variable(config[CONF_LEDS_NIGHTLIGHT])
     cg.add(var.set_leds_nightlight(leds_nl))
-    for idx, led_id in enumerate(config[CONF_LEDS_BUTTONS]):
+    # Resolve leds_buttons: use explicit config or default hardware IDs
+    if CONF_LEDS_BUTTONS in config:
+        led_ids = config[CONF_LEDS_BUTTONS]
+    else:
+        led_ids = _LED_BUTTON_DEFAULT_IDS[:button_count]
+    # If reverse, mirror the LED→button mapping
+    if reverse:
+        led_ids = list(reversed(led_ids))
+    for idx, led_id in enumerate(led_ids):
         led = await cg.get_variable(led_id)
         cg.add(var.set_leds_button(idx, led))
 

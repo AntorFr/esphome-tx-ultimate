@@ -246,6 +246,7 @@ void TxUltimateSwitch::on_touch_release(int pos) {
   if (sp != nullptr) play_sound_(sp->click);
 
   // Route to button
+  if (reverse_) pos = 10 - pos;
   uint8_t btn_idx = 0;
   if (button_count_ == 1) {
     btn_idx = 0;
