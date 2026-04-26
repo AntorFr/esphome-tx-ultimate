@@ -228,6 +228,10 @@ void TxUltimateSwitch::apply_touch_led_(const Color3 &color, float brightness,
   });
 }
 
+void TxUltimateSwitch::cancel_touch_led_timer_() {
+  App.scheduler.cancel_timeout(this, "touch_led_reset");
+}
+
 // ── Touch event handlers ──────────────────────────────────────────────────────
 
 void TxUltimateSwitch::on_touch_press() {

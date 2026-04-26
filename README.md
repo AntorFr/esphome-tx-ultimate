@@ -70,12 +70,6 @@ tx_ultimate_switch:
   id: tx
   button_count: 3
   leds: leds
-  leds_top: leds_top
-  leds_nightlight: leds_nightlight
-  leds_buttons:
-    right: leds_button_right
-    middle: leds_button_middle
-    left: leds_button_left
   vibra: vibra
   api_connected: api_connected
   buttons:
@@ -102,9 +96,6 @@ See [example/my_switch_3btn.yaml](example/my_switch_3btn.yaml).
 |-----|------|-------------|
 | `button_count` | int 1–3 | Number of physical buttons |
 | `leds` | light id | Full LED strip (28 LEDs) |
-| `leds_top` | light id | Top LEDs (touch feedback, LEDs 20–26) |
-| `leds_nightlight` | light id | Nightlight zone (LEDs 0–19 + 27) |
-| `leds_buttons` | mapping | Per-button LEDs, keyed by position (`right`, `middle`, `left`) |
 
 ### Optional keys
 
@@ -177,35 +168,56 @@ nightlight:
 
 Themes can be declared inline or loaded from packages. Each package appends to the `themes` list (ESPHome merges lists across packages).
 
+Each theme state (`button`, `nightlight`, `sleep`, `touch`, `swipe_left`, `swipe_right`, `long_press`, `multi_touch`) takes a `color`, `brightness`, and an optional `effect` block.
+
 ```yaml
 tx_ultimate_switch:
   themes:
     - name: "My Theme"
-      button_color: [0, 0, 100]          # [r, g, b] in range 0–100
-      button_brightness: 0.7
-      nightlight_color: [80, 70, 0]
-      nightlight_brightness: 0.2
-      nightlight_effect: "None"           # ESPHome light effect name
-      touch_color: [0, 100, 100]
-      touch_brightness: 1.0
-      touch_effect: "Scan"
-      swipe_left_color: [0, 100, 0]
-      swipe_left_brightness: 1.
-      swipe_left_effect: "None"
-      swipe_right_color: [100, 0, 70]
-      swipe_right_brightness: 1.0
-      swipe_right_effect: "None"
-      long_press_color: [100, 0, 0]
-      long_press_brightness: 1.0
-      long_press_effect: "None"
-      multi_touch_color: [0, 0, 0]
-      multi_touch_brightness: 1.0
-      multi_touch_effect: "Rainbow"
-      sleep_color: [60, 0, 0]             # nightlight colour in sleep mode
-      sleep_brightness: 0.08
-      sleep_effect: "None"
-      sound: explore_the_stars            # sound pack name
+      button:
+        color: [0, 0, 100]        # [r, g, b] in range 0–100
+        brightness: 0.7
+      nightlight:
+        color: [80, 70, 0]
+        brightness: 0.2
+        effect:                   # optional
+          type: stars             # scan | rainbow | christmas | stars
+          probability: 0.3        # stars-specific param
+      sleep:
+        color: [60, 0, 0]         # nightlight colour in sleep mode
+        brightness: 0.08
+      touch:
+        color: [0, 100, 100]
+        brightness: 1.0
+        effect:
+          type: scan
+      swipe_left:
+        color: [0, 100, 0]
+        brightness: 1.0
+      swipe_right:
+        color: [100, 0, 70]
+        brightness: 1.0
+      long_press:
+        color: [100, 0, 0]
+        brightness: 1.0
+      multi_touch:
+        color: [0, 0, 0]
+        brightness: 1.0
+        effect:
+          type: rainbow
+          speed: 10               # rainbow-specific param
+          width: 20               # rainbow-specific param
+      sound: explore_the_stars    # sound pack name
 ```
+
+### Effect types
+
+| Type | Extra parameters |
+|------|------------------|
+| `scan` | *(none)* |
+| `rainbow` | `speed` (int, default 10), `width` (int, default 20) |
+| `christmas` | `blank_size` (int, default 1), `bit_size` (int, default 1) |
+| `stars` | `probability` (float 0.0–1.0, default 0.3), `color` ([r,g,b] 0–100) |
 
 ### Built-in themes
 

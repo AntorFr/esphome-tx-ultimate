@@ -81,58 +81,7 @@ light:
       - addressable_rainbow:
           name: "Rainbow"
 
-  - id: leds_button_right
-    platform: partition
-    name: "LEDs Button Right"
-    internal: true
-    segments:
-      - id: leds
-        from: 7
-        to: 7
 
-  - id: leds_button_middle
-    platform: partition
-    name: "LEDs Button Middle"
-    internal: true
-    segments:
-      - id: leds
-        from: 9
-        to: 9
-
-  - id: leds_button_left
-    platform: partition
-    name: "LEDs Button Left"
-    internal: true
-    segments:
-      - id: leds
-        from: 11
-        to: 11
-
-  - id: leds_nightlight
-    platform: partition
-    name: "LEDs Nightlight"
-    internal: true
-    segments:
-      - id: leds
-        from: 0
-        to: 19
-      - id: leds
-        from: 27
-        to: 27
-
-  - id: leds_top
-    platform: partition
-    name: "LEDs Top"
-    internal: true
-    segments:
-      - id: leds
-        from: 20
-        to: 26
-    effects:
-      - addressable_scan:
-          name: "Scan"
-      - addressable_rainbow:
-          name: "Rainbow"
 
 switch:
   - id: vibra
@@ -183,25 +132,37 @@ tx_ultimate_switch:
     - switch_relay: true
       relay: relay_3
   leds: leds
-  leds_top: leds_top
-  leds_nightlight: leds_nightlight
   vibra: vibra
   api_connected: api_connected
   nightlight:
     sensor: night_sensor
   themes:
     - name: "Default"
-      button_color: [0, 0, 100]
-      button_brightness: 0.7
-      nightlight_color: [80, 70, 0]
-      nightlight_brightness: 0.2
-      touch_color: [0, 100, 100]
-      touch_brightness: 1.0
-      touch_effect: "Scan"
-      swipe_left_color: [0, 100, 0]
-      swipe_right_color: [100, 0, 70]
-      long_press_color: [100, 0, 0]
-      multi_touch_effect: "Rainbow"
+      button:
+        color: [0, 0, 100]
+        brightness: 0.7
+      nightlight:
+        color: [80, 70, 0]
+        brightness: 0.2
+      touch:
+        color: [0, 100, 100]
+        brightness: 1.0
+        effect:
+          type: scan
+      swipe_left:
+        color: [0, 100, 0]
+        brightness: 1.0
+      swipe_right:
+        color: [100, 0, 70]
+        brightness: 1.0
+      long_press:
+        color: [100, 0, 0]
+        brightness: 1.0
+      multi_touch:
+        color: [0, 0, 0]
+        brightness: 1.0
+        effect:
+          type: rainbow
   active_theme: "Default"
   button_on_time: 500ms
   touch_led_duration: 6s

@@ -188,9 +188,7 @@ class TxUltimateSwitch : public Component {
   void apply_touch_led_(const Color3 &color, float brightness, const std::string &effect);
   void apply_button_led_(uint8_t idx, bool relay_on);
   void apply_nightlight_led_();
-  void cancel_touch_led_timer_() {
-    App.scheduler.cancel_timeout(this, "touch_led_reset");
-  }
+  void cancel_touch_led_timer_();
 
   const Theme *active_theme_() const;
   const SoundPack *active_sound_pack_() const;

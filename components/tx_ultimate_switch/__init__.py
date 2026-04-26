@@ -83,7 +83,7 @@ TxUltimateSwitch = tx_ultimate_switch_ns.class_("TxUltimateSwitch", cg.Component
 Theme    = tx_ultimate_switch_ns.struct("Theme")
 Color3   = tx_ultimate_switch_ns.struct("Color3")
 SoundPack = tx_ultimate_switch_ns.struct("SoundPack")
-RoomType = tx_ultimate_switch_ns.enum("RoomType")
+RoomType = tx_ultimate_switch_ns.enum("RoomType", is_class=True)
 
 partitions_ns = cg.esphome_ns.namespace("partition")
 PartitionLightOutput = partitions_ns.class_(
@@ -96,7 +96,7 @@ LightState       = light_ns.class_("LightState", cg.EntityBase, cg.Component)
 LightRestoreMode = light_ns.enum("LightRestoreMode")
 
 AddressableScanEffect            = light_ns.class_("AddressableScanEffect")
-AddressableRainbowEffect         = light_ns.class_("AddressableRainbowEffect")
+AddressableRainbowEffect         = light_ns.class_("AddressableRainbowLightEffect")
 AddressableChristmasEffect       = light_ns.class_("AddressableChristmasEffect")
 AddressableStarsEffect           = light_ns.class_("AddressableStarsEffect")
 AddressableColorStarsEffectColor = light_ns.struct("AddressableColorStarsEffectColor")
@@ -314,10 +314,10 @@ async def _create_partition(output_id, state_id, leds_var, segments):
         AddressableSegment(leds_var, from_, count, False)
         for from_, count in segments
     ]
-    output_var = cg.new_Pvariable(output_id, PartitionLightOutput, seg_list)
+    output_var = cg.new_Pvariable(output_id, seg_list)
     await cg.register_component(output_var, {})
 
-    state_var = cg.new_Pvariable(state_id, LightState, output_var)
+    state_var = cg.new_Pvariable(state_id, output_var)
     await cg.register_component(state_var, {})
     cg.add(state_var.set_restore_mode(LightRestoreMode.LIGHT_RESTORE_DEFAULT_OFF))
     return state_var
