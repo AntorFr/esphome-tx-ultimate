@@ -140,6 +140,9 @@ BUTTON_SCHEMA = cv.Schema(
 # Named button keys in physical order (left → middle → right)
 _BUTTON_KEYS_ORDERED = ["button_1", "button_2", "button_3"]
 
+# Named LED button keys: right=idx0, middle=idx1, left=idx2
+_LED_BUTTON_KEYS_ORDERED = ["right", "middle", "left"]
+
 
 def _normalize_buttons(value):
     """Accept either a positional list or a named dict (button_1/button_2/button_3)."""
@@ -153,6 +156,27 @@ def _normalize_buttons(value):
             )
         return [value[key] for key in _BUTTON_KEYS_ORDERED if key in value]
     raise cv.Invalid("buttons must be a list or a mapping with button_1/button_2/button_3 keys")
+
+
+def _normalize_leds_buttons(value):
+    """Accept either a positional list or a named dict (right/middle/left).
+
+    Named keys map to fixed button indices: right=0, middle=1, left=2.
+    For button_count:1 provide only 'right'.
+    For button_count:2 provide 'right' and one of 'middle'/'left'.
+    For button_count:3 provide all three.
+    A positional list is also accepted for backward compatibility.
+    """
+    if isinstance(value, list):
+        return value
+    if isinstance(value, dict):
+        unknown = set(value.keys()) - set(_LED_BUTTON_KEYS_ORDERED)
+        if unknown:
+            raise cv.Invalid(
+                f"Unknown leds_buttons key(s): {unknown}. Valid keys: right, middle, left."
+            )
+        return [value[key] for key in _LED_BUTTON_KEYS_ORDERED if key in value]
+    raise cv.Invalid("leds_buttons must be a list or a mapping with right/middle/left keys")
 
 NIGHTLIGHT_SCHEMA = cv.Schema(
     {
@@ -189,6 +213,7 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Required(CONF_LEDS_TOP): cv.use_id(light.LightState),
         cv.Required(CONF_LEDS_NIGHTLIGHT): cv.use_id(light.LightState),
         cv.Required(CONF_LEDS_BUTTONS): cv.All(
+            _normalize_leds_buttons,
             cv.ensure_list(cv.use_id(light.LightState)),
             cv.Length(min=1, max=3),
         ),

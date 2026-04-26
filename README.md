@@ -73,9 +73,9 @@ tx_ultimate_switch:
   leds_top: leds_top
   leds_nightlight: leds_nightlight
   leds_buttons:
-    - leds_button_right
-    - leds_button_middle
-    - leds_button_left
+    right: leds_button_right
+    middle: leds_button_middle
+    left: leds_button_left
   vibra: vibra
   api_connected: api_connected
   buttons:
@@ -104,7 +104,7 @@ See [example/my_switch_3btn.yaml](example/my_switch_3btn.yaml).
 | `leds` | light id | Full LED strip (28 LEDs) |
 | `leds_top` | light id | Top LEDs (touch feedback, LEDs 20–26) |
 | `leds_nightlight` | light id | Nightlight zone (LEDs 0–19 + 27) |
-| `leds_buttons` | list of light ids | Per-button LEDs (1–3 entries) |
+| `leds_buttons` | mapping | Per-button LEDs, keyed by position (`right`, `middle`, `left`) |
 
 ### Optional keys
 
