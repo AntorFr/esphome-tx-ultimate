@@ -9,7 +9,7 @@ from esphome.core import CORE, ID as CoreID
 
 CODEOWNERS = ["@AntorFr"]
 DEPENDENCIES = ["light", "binary_sensor"]
-AUTO_LOAD = ["select", "partition"]
+AUTO_LOAD = ["select", "partition", "switch"]
 
 MULTI_CONF = True
 
@@ -430,7 +430,7 @@ async def to_code(config):
     cg.add(var.set_upside_down(is_reversed))
 
     for idx, btn_cfg in enumerate(config[CONF_BUTTONS]):
-        relay_var = None
+        relay_var = cg.nullptr
         if CONF_RELAY in btn_cfg:
             relay = btn_cfg[CONF_RELAY]
             # Both forms reduce to a LightState id lookup. Inline dicts were

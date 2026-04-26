@@ -1,0 +1,76 @@
+# tests/test_5_virtual_button.yaml
+# Tests a button with NO relay configured (purely virtual — fires sensor only).
+esphome:
+  name: test-virtual-btn
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+    version: recommended
+
+external_components:
+  - source: ../components
+    components: [tx_ultimate_touch, tx_ultimate_switch]
+  - source: github://AntorFr/esphome-addressable-effects@main
+    components: [custom_addressable_effects]
+
+custom_addressable_effects:
+
+logger:
+  level: DEBUG
+
+api:
+
+wifi:
+  ssid: test
+  password: testtest
+
+uart:
+  id: my_uart
+  tx_pin: GPIO19
+  rx_pin: GPIO22
+  baud_rate: 115200
+
+light:
+  - id: leds
+    platform: esp32_rmt_led_strip
+    chipset: WS2812
+    rgb_order: GRB
+    pin: GPIO13
+    num_leds: 28
+    name: "NeoPixel"
+    internal: true
+
+binary_sensor:
+  - platform: status
+    name: "API Status"
+    id: api_connected
+    internal: true
+
+tx_ultimate_touch:
+  id: tx_touch
+  uart_id: my_uart
+  on_press:
+    - lambda: id(tx).on_touch_press();
+  on_release:
+    - lambda: id(tx).on_touch_release(touch.x);
+  on_swipe_left:
+    - lambda: id(tx).on_swipe_left();
+  on_swipe_right:
+    - lambda: id(tx).on_swipe_right();
+  on_full_touch_release:
+    - lambda: id(tx).on_full_touch_release();
+  on_long_touch_release:
+    - lambda: id(tx).on_long_touch_release();
+
+tx_ultimate_switch:
+  id: tx
+  buttons:
+    - position: right
+      switch_relay: false
+      # No relay — purely virtual button (only fires the sensor)
+      sensor:
+        name: "Virtual Button"
+  leds: leds
+  api_connected: api_connected
