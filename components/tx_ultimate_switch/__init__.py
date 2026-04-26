@@ -1,9 +1,11 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
+import esphome.final_validate as fv
 from esphome.components import light, binary_sensor, switch, select, media_player, audio
-from esphome.const import CONF_ID, CONF_NAME
+from esphome.components.binary import light as binary_light
+from esphome.const import CONF_ID, CONF_NAME, CONF_PLATFORM
 from esphome import automation
-from esphome.core import ID as CoreID
+from esphome.core import CORE, ID as CoreID
 
 CODEOWNERS = ["@AntorFr"]
 DEPENDENCIES = ["light", "binary_sensor"]
@@ -14,7 +16,6 @@ MULTI_CONF = True
 CONF_TX_ULTIMATE_SWITCH = "tx_ultimate_switch"
 
 # ── Top-level config keys ─────────────────────────────────────────────────────
-CONF_BUTTON_COUNT      = "button_count"
 CONF_BUTTONS           = "buttons"
 CONF_LEDS              = "leds"
 CONF_VIBRA             = "vibra"
@@ -24,6 +25,7 @@ CONF_THEMES            = "themes"
 CONF_ACTIVE_THEME      = "active_theme"
 CONF_SOUND_PACKS       = "sound_packs"
 CONF_API_CONNECTED     = "api_connected"
+CONF_WIFI_CONNECTED    = "wifi_connected"
 CONF_BUTTON_ON_TIME    = "button_on_time"
 CONF_TOUCH_LED_DURATION = "touch_led_duration"
 CONF_REVERSE           = "reverse"
@@ -35,9 +37,11 @@ CONF_AWAY_SENSOR  = "away_sensor"
 CONF_ROOM_TYPE    = "room_type"
 
 # ── Button config keys ────────────────────────────────────────────────────────
+CONF_POSITION     = "position"
 CONF_SWITCH_RELAY = "switch_relay"
 CONF_RELAY        = "relay"
 CONF_STATE_SENSOR = "state_sensor"
+CONF_SENSOR       = "sensor"
 
 # ── Effect config keys ────────────────────────────────────────────────────────
 CONF_EFFECT_TYPE        = "type"
@@ -84,6 +88,8 @@ Theme    = tx_ultimate_switch_ns.struct("Theme")
 Color3   = tx_ultimate_switch_ns.struct("Color3")
 SoundPack = tx_ultimate_switch_ns.struct("SoundPack")
 RoomType = tx_ultimate_switch_ns.enum("RoomType", is_class=True)
+ButtonPosition  = tx_ultimate_switch_ns.enum("ButtonPosition", is_class=True)
+SwitchRelayMode = tx_ultimate_switch_ns.enum("SwitchRelayMode", is_class=True)
 
 partitions_ns = cg.esphome_ns.namespace("partition")
 PartitionLightOutput = partitions_ns.class_(
@@ -106,6 +112,21 @@ ROOM_TYPE_OPTIONS = {
     "bedroom":  RoomType.BEDROOM,
     "dark":     RoomType.DARK,
 }
+
+POSITION_OPTIONS = {
+    "left":   ButtonPosition.LEFT,
+    "center": ButtonPosition.CENTER,
+    "right":  ButtonPosition.RIGHT,
+}
+
+SWITCH_RELAY_OPTIONS = {
+    "true":          SwitchRelayMode.ALWAYS,
+    "false":         SwitchRelayMode.NEVER,
+    "fallback_ha":   SwitchRelayMode.FALLBACK_HA,
+    "fallback_wifi": SwitchRelayMode.FALLBACK_WIFI,
+}
+
+ALLOWED_RELAY_IDS = ("relay_1", "relay_2", "relay_3")
 
 # ── Validators ────────────────────────────────────────────────────────────────
 def validate_color(value):
@@ -162,31 +183,107 @@ THEME_SCHEMA = cv.Schema(
     }
 )
 
-BUTTON_SCHEMA = cv.Schema(
+def _validate_switch_relay(value):
+    if isinstance(value, bool):
+        value = "true" if value else "false"
+    return cv.enum(SWITCH_RELAY_OPTIONS, lower=True)(value)
+
+
+def _validate_relay_id(value):
+    """Constrain the relay id to relay_1..3 then declare it as a LightState."""
+    if not isinstance(value, str):
+        raise cv.Invalid(f"relay id must be a string, got {type(value).__name__}")
+    if value not in ALLOWED_RELAY_IDS:
+        raise cv.Invalid(
+            f"relay id must be one of {ALLOWED_RELAY_IDS}, got '{value}'"
+        )
+    return cv.declare_id(light.LightState)(value)
+
+
+# Inline relay declaration — uses binary.light.CONFIG_SCHEMA verbatim, with the
+# LightState id constrained to relay_1..3. The dict will be re-injected into the
+# top-level light: section during FINAL_VALIDATE so the binary.light platform's
+# normal codegen + source-copy pipeline picks it up.
+RELAY_INLINE_SCHEMA = binary_light.CONFIG_SCHEMA.extend(
     {
-        cv.Optional(CONF_SWITCH_RELAY, default=True): cv.boolean,
-        cv.Optional(CONF_RELAY): cv.use_id(light.LightState),
-        cv.Optional(CONF_STATE_SENSOR): cv.use_id(binary_sensor.BinarySensor),
+        cv.Required(CONF_ID): _validate_relay_id,
     }
 )
 
-_BUTTON_KEYS_ORDERED = ["button_1", "button_2", "button_3"]
 
-
-def _normalize_buttons(value):
-    if isinstance(value, list):
-        return value
+def _validate_relay(value):
+    """Accept either an id reference (string) or an inline binary-light declaration (dict)."""
     if isinstance(value, dict):
-        unknown = set(value.keys()) - set(_BUTTON_KEYS_ORDERED)
-        if unknown:
+        return RELAY_INLINE_SCHEMA(value)
+    return cv.use_id(light.LightState)(value)
+
+
+# Inline press sensor — exposes the button press to HA (replaces Touchfield N).
+SENSOR_SCHEMA = binary_sensor.binary_sensor_schema(class_=binary_sensor.BinarySensor)
+
+BUTTON_SCHEMA = cv.Schema(
+    {
+        cv.Required(CONF_POSITION): cv.enum(POSITION_OPTIONS, lower=True),
+        cv.Optional(CONF_SWITCH_RELAY, default="fallback_ha"): _validate_switch_relay,
+        cv.Optional(CONF_RELAY): _validate_relay,
+        cv.Optional(CONF_STATE_SENSOR): cv.use_id(binary_sensor.BinarySensor),
+        cv.Optional(CONF_SENSOR): SENSOR_SCHEMA,
+    }
+)
+
+
+def _validate_buttons(value):
+    if not isinstance(value, list):
+        raise cv.Invalid("buttons must be a list")
+    if len(value) < 1 or len(value) > 3:
+        raise cv.Invalid(f"buttons must have between 1 and 3 entries, got {len(value)}")
+
+    seen_positions = set()
+    seen_relay_ids = set()
+    for i, btn in enumerate(value):
+        pos_key = str(btn[CONF_POSITION])
+        if pos_key in seen_positions:
             raise cv.Invalid(
-                f"Unknown button key(s): {unknown}. "
-                "Valid keys: button_1, button_2, button_3."
+                f"buttons[{i}]: position is already used by another button"
             )
-        return [value[key] for key in _BUTTON_KEYS_ORDERED if key in value]
-    raise cv.Invalid(
-        "buttons must be a list or a mapping with button_1/button_2/button_3 keys"
-    )
+        seen_positions.add(pos_key)
+
+        if CONF_RELAY in btn and isinstance(btn[CONF_RELAY], dict):
+            rid = str(btn[CONF_RELAY][CONF_ID])
+            if rid in seen_relay_ids:
+                raise cv.Invalid(
+                    f"buttons[{i}]: relay id '{rid}' is already used by another button"
+                )
+            seen_relay_ids.add(rid)
+    return value
+
+
+def _final_validate(config):
+    """Inject inline-declared relays into the top-level light: section as
+    binary platform entries. This runs after CONFIG_SCHEMA so the relay dicts
+    are already validated; we just stamp `platform: binary` on each and add
+    them to full_config["light"] so ESPHome's normal pipeline copies sources
+    and runs the binary.light to_code for us."""
+    inline_entries = []
+    for btn in config[CONF_BUTTONS]:
+        relay = btn.get(CONF_RELAY)
+        if isinstance(relay, dict):
+            entry = dict(relay)
+            entry[CONF_PLATFORM] = "binary"
+            inline_entries.append(entry)
+
+    if not inline_entries:
+        return
+
+    full = fv.full_config.get()
+    light_section = full.setdefault("light", [])
+    light_section.extend(inline_entries)
+    # Track in CORE for cache invalidation parity with normal platform loading.
+    CORE.loaded_integrations.add("binary")
+    CORE.loaded_platforms.add("light/binary")
+
+
+FINAL_VALIDATE_SCHEMA = _final_validate
 
 
 NIGHTLIGHT_SCHEMA = cv.Schema(
@@ -213,10 +310,9 @@ SOUND_PACK_SCHEMA = cv.Schema(
 CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(TxUltimateSwitch),
-        cv.Optional(CONF_BUTTON_COUNT, default=3): cv.int_range(min=1, max=3),
-        cv.Optional(CONF_BUTTONS, default=[]): cv.All(
-            _normalize_buttons,
+        cv.Required(CONF_BUTTONS): cv.All(
             cv.ensure_list(BUTTON_SCHEMA),
+            _validate_buttons,
         ),
         cv.Required(CONF_LEDS): cv.use_id(light.LightState),
         cv.Optional(CONF_REVERSE, default=False): cv.boolean,
@@ -227,6 +323,7 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_ACTIVE_THEME, default="Default"): cv.string,
         cv.Optional(CONF_SOUND_PACKS, default=[]): cv.ensure_list(SOUND_PACK_SCHEMA),
         cv.Optional(CONF_API_CONNECTED): cv.use_id(binary_sensor.BinarySensor),
+        cv.Optional(CONF_WIFI_CONNECTED): cv.use_id(binary_sensor.BinarySensor),
         cv.Optional(CONF_BUTTON_ON_TIME,     default="500ms"): cv.positive_time_period_milliseconds,
         cv.Optional(CONF_TOUCH_LED_DURATION, default="6s"):    cv.positive_time_period_milliseconds,
         # Internal auto-generated IDs for dynamic partition LightStates
@@ -329,20 +426,33 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
 
-    button_count = config[CONF_BUTTON_COUNT]
-    cg.add(var.set_button_count(button_count))
     is_reversed = config[CONF_REVERSE]
     cg.add(var.set_reverse(is_reversed))
 
     for idx, btn_cfg in enumerate(config[CONF_BUTTONS]):
-        relay = None
+        relay_var = None
         if CONF_RELAY in btn_cfg:
-            relay = await cg.get_variable(btn_cfg[CONF_RELAY])
-        cg.add(var.add_button(btn_cfg[CONF_SWITCH_RELAY], relay))
+            relay = btn_cfg[CONF_RELAY]
+            # Both forms reduce to a LightState id lookup. Inline dicts were
+            # injected into light: at FINAL_VALIDATE; their LightState is
+            # created by binary.light.to_code at code-gen time.
+            relay_id = relay[CONF_ID] if isinstance(relay, dict) else relay
+            relay_var = await cg.get_variable(relay_id)
+
+        cg.add(var.add_button(
+            btn_cfg[CONF_POSITION],
+            btn_cfg[CONF_SWITCH_RELAY],
+            relay_var,
+        ))
+
         if CONF_STATE_SENSOR in btn_cfg:
             cg.add(var.set_button_state_sensor(
                 idx, await cg.get_variable(btn_cfg[CONF_STATE_SENSOR])
             ))
+
+        if CONF_SENSOR in btn_cfg:
+            press_var = await binary_sensor.new_binary_sensor(btn_cfg[CONF_SENSOR])
+            cg.add(var.set_button_press_sensor(idx, press_var))
 
     leds_var = await cg.get_variable(config[CONF_LEDS])
     cg.add(var.set_leds(leds_var))
@@ -380,6 +490,8 @@ async def to_code(config):
         cg.add(var.set_media_player(await cg.get_variable(config[CONF_MEDIA_PLAYER])))
     if CONF_API_CONNECTED in config:
         cg.add(var.set_api_connected(await cg.get_variable(config[CONF_API_CONNECTED])))
+    if CONF_WIFI_CONNECTED in config:
+        cg.add(var.set_wifi_connected(await cg.get_variable(config[CONF_WIFI_CONNECTED])))
 
     if CONF_NIGHTLIGHT in config:
         nl_cfg = config[CONF_NIGHTLIGHT]

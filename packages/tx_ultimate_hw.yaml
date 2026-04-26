@@ -24,11 +24,6 @@ substitutions:
   audio_bclk_pin: GPIO2
   audio_sdata_pin: GPIO15
 
-  # Relay restore modes — override in device YAML if needed
-  relay_1_restore_mode: RESTORE_DEFAULT_OFF
-  relay_2_restore_mode: RESTORE_DEFAULT_OFF
-  relay_3_restore_mode: RESTORE_DEFAULT_OFF
-
 esp32:
   board: esp32dev
   framework:
@@ -154,27 +149,10 @@ output:
     platform: gpio
     pin: ${relay_3_pin}
 
-# ── Relay lights ──────────────────────────────────────────────────────────────
+# ── LED strip ────────────────────────────────────────────────────────────────
+# Relay lights are declared inline by tx_ultimate_switch.buttons[].relay
+# (see device YAMLs).
 light:
-  - id: relay_1
-    platform: binary
-    name: "L1"
-    output: l1_output
-    restore_mode: ${relay_1_restore_mode}
-
-  - id: relay_2
-    platform: binary
-    name: "L2"
-    output: l2_output
-    restore_mode: ${relay_2_restore_mode}
-
-  - id: relay_3
-    platform: binary
-    name: "L3"
-    output: l3_output
-    restore_mode: ${relay_3_restore_mode}
-
-  # ── LED strip ──────────────────────────────────────────────────────────────
   - id: leds
     platform: esp32_rmt_led_strip
     chipset: WS2812
@@ -232,7 +210,7 @@ speaker:
     sample_rate: 48000
     bits_per_sample: 16
 
-# ── API status binary sensor ──────────────────────────────────────────────────
+# ── Connectivity binary sensors ──────────────────────────────────────────────
 binary_sensor:
   - platform: status
     name: "API Status"
@@ -242,6 +220,15 @@ binary_sensor:
       - delayed_off: 30s
     on_press:
       - lambda: id(tx).init_relays();
+
+  - platform: template
+    id: wifi_connected
+    internal: true
+    lambda: |-
+      return wifi::global_wifi_component != nullptr &&
+             wifi::global_wifi_component->is_connected();
+    filters:
+      - delayed_off: 5s
 
   # ── Touch event binary sensors (exposed to HA for automations) ─────────────
   - id: swipe_left

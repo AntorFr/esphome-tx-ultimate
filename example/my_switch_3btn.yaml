@@ -1,11 +1,11 @@
 # example/my_switch_3btn.yaml
-# Example: 3-button TX Ultimate switch with nightlight and all 3 themes.
+# Example: 3-button TX Ultimate switch with inline relays, nightlight, audio,
+# per-button press sensors, and the 3 built-in themes.
 #
 # Substitute:
 #   - device_name / friendly_name
-#   - wifi credentials
-#   - HA nightlight/sleep/away sensor entity IDs
-#   - OTA / API passwords
+#   - secrets (wifi, OTA, API key)
+#   - HA nightlight / sleep / away sensor entity IDs
 
 substitutions:
   device_name: living-room-switch
@@ -16,9 +16,9 @@ substitutions:
   api_encryption_key: !secret api_encryption_key
 
   # Nightlight sensors (Home Assistant entity IDs)
-  ha_night_sensor: binary_sensor.is_nighttime         # required
-  ha_sleep_sensor: binary_sensor.master_bedroom_sleep # optional (mutes sounds + nightlight)
-  ha_away_sensor: binary_sensor.home_away             # optional (disables nightlight when away)
+  ha_night_sensor: binary_sensor.is_nighttime
+  ha_sleep_sensor: binary_sensor.master_bedroom_sleep
+  ha_away_sensor:  binary_sensor.home_away
 
 esphome:
   name: ${device_name}
@@ -28,9 +28,9 @@ packages:
   hw: github://AntorFr/esphome-tx-ultimate/packages/tx_ultimate_hw.yaml@main
 
   # Themes — each package appends to the themes list
-  theme_default: github://AntorFr/esphome-tx-ultimate/packages/themes/default.yaml@main
+  theme_default:   github://AntorFr/esphome-tx-ultimate/packages/themes/default.yaml@main
   theme_christmas: github://AntorFr/esphome-tx-ultimate/packages/themes/christmas.yaml@main
-  theme_stars: github://AntorFr/esphome-tx-ultimate/packages/themes/explore_the_stars.yaml@main
+  theme_stars:     github://AntorFr/esphome-tx-ultimate/packages/themes/explore_the_stars.yaml@main
 
 wifi:
   ssid: ${wifi_ssid}
@@ -47,28 +47,28 @@ api:
   encryption:
     key: ${api_encryption_key}
 
-# ── Nightlight sensors from Home Assistant ───────────────────────────────────
+# ── Nightlight sensors from Home Assistant ────────────────────────────────────
 binary_sensor:
   - platform: homeassistant
     id: night_sensor
     entity_id: ${ha_night_sensor}
-    publish_initial_state: true
+    trigger_on_initial_state: true
 
   - platform: homeassistant
     id: sleep_sensor
     entity_id: ${ha_sleep_sensor}
-    publish_initial_state: true
+    trigger_on_initial_state: true
 
   - platform: homeassistant
     id: away_sensor
     entity_id: ${ha_away_sensor}
-    publish_initial_state: true
+    trigger_on_initial_state: true
 
-# ── Media player pipeline (wired to the speaker defined in hw package) ───────
+# ── Media player pipeline (wired to the speaker defined in hw package) ────────
 media_player:
   - platform: speaker
     name: "Media Player"
-    id: media_player
+    id: mp
     announcement_pipeline:
       speaker: announcement_resampling_speaker
       format: FLAC
@@ -84,53 +84,72 @@ media_player:
     volume_max: 1.0
     files:
       - id: sound_click
-        path: https://github.com/AntorFr/esphome-tx-ultimate/raw/main/sounds/explore_the_stars/click.flac
+        file: https://raw.githubusercontent.com/AntorFr/esphome-projects/refs/heads/master/sounds/tx_ultimate/explore_the_stars/clic.flac
       - id: sound_long_press
-        path: https://github.com/AntorFr/esphome-tx-ultimate/raw/main/sounds/explore_the_stars/long_press.flac
+        file: https://raw.githubusercontent.com/AntorFr/esphome-projects/refs/heads/master/sounds/tx_ultimate/explore_the_stars/long_press.flac
       - id: sound_multi_press
-        path: https://github.com/AntorFr/esphome-tx-ultimate/raw/main/sounds/explore_the_stars/multi_press.flac
+        file: https://raw.githubusercontent.com/AntorFr/esphome-projects/refs/heads/master/sounds/tx_ultimate/explore_the_stars/multi_press.flac
       - id: sound_slide
-        path: https://github.com/AntorFr/esphome-tx-ultimate/raw/main/sounds/explore_the_stars/slide.flac
+        file: https://raw.githubusercontent.com/AntorFr/esphome-projects/refs/heads/master/sounds/tx_ultimate/explore_the_stars/slide.flac
 
 # ── Main switch component ─────────────────────────────────────────────────────
 tx_ultimate_switch:
   id: tx
-  button_count: 3
 
   buttons:
-    - switch_relay: true
-      relay: relay_1
-    - switch_relay: true
-      relay: relay_2
-    - switch_relay: true
-      relay: relay_3
+    - position: left
+      switch_relay: true
+      relay:
+        id: relay_1
+        name: "L1"
+        output: l1_output
+        restore_mode: RESTORE_DEFAULT_OFF
+      sensor:
+        name: "Touchfield Gauche"
+
+    - position: center
+      switch_relay: true
+      relay:
+        id: relay_2
+        name: "L2"
+        output: l2_output
+        restore_mode: RESTORE_DEFAULT_OFF
+      sensor:
+        name: "Touchfield Centre"
+
+    - position: right
+      switch_relay: fallback_ha     # toggle locally only when HA is down
+      relay:
+        id: relay_3
+        name: "L3"
+        output: l3_output
+        restore_mode: RESTORE_DEFAULT_OFF
+      sensor:
+        name: "Touchfield Droit"
 
   leds: leds
-  leds_top: leds_top
-  leds_nightlight: leds_nightlight
 
   vibra: vibra
-  media_player: media_player
+  media_player: mp
   api_connected: api_connected
+  wifi_connected: wifi_connected
 
   nightlight:
     sensor: night_sensor
     sleep_sensor: sleep_sensor
     away_sensor: away_sensor
-    # room_type: standard   # standard (default): nightlight suit night_sensor; sleep → guide couleur
-    #                       # bedroom:            sleep_sensor actif → LED éteinte (ne pas déranger)
-    #                       # dark:               nightlight toujours ON (pièce sans fenêtre); sleep/away respectés
+    # room_type: standard   # standard (default) | bedroom | dark — see README
 
-  # Themes are merged from the packages above.
-  # The active_theme sets the default theme; user can switch via the HA select entity.
+  # Themes are merged from the packages above. Active theme can be switched
+  # at runtime via the auto-generated HA select entity.
   active_theme: "Default"
 
   sound_packs:
     - name: explore_the_stars
-      click: sound_click
-      long_press: sound_long_press
+      click:       sound_click
+      long_press:  sound_long_press
       multi_press: sound_multi_press
-      slide: sound_slide
+      slide:       sound_slide
 
   button_on_time: 500ms
   touch_led_duration: 6s

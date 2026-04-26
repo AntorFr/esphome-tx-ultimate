@@ -1,22 +1,13 @@
-# tests/test_2_switch_no_audio.yaml
-# Tests schema validation of tx_ultimate_switch (3 buttons, no media player, no sound).
-# Run: ../venv/bin/esphome compile --only-generate tests/test_2_switch_no_audio.yaml
-
+# tests/test_4_mixed_relay.yaml
+# Tests mixing inline relay declaration with external id reference.
 esphome:
-  name: test-switch-no-audio
+  name: test-mixed
 
 esp32:
   board: esp32dev
   framework:
     type: esp-idf
     version: recommended
-    sdkconfig_options:
-      CONFIG_ESP32_SPIRAM_SUPPORT: "y"
-      CONFIG_SPIRAM_USE_MALLOC: "y"
-
-psram:
-  mode: quad
-  speed: 40MHz
 
 external_components:
   - source: ../components
@@ -52,7 +43,13 @@ output:
     platform: gpio
     pin: GPIO27
 
+# External declaration of relay_2 — should coexist with inline relay_1 / relay_3.
 light:
+  - id: relay_2
+    platform: binary
+    name: "L2-external"
+    output: l2_output
+
   - id: leds
     platform: esp32_rmt_led_strip
     chipset: WS2812
@@ -61,12 +58,6 @@ light:
     num_leds: 28
     name: "NeoPixel"
     internal: true
-    default_transition_length: 0ms
-    effects:
-      - addressable_rainbow:
-          name: "Rainbow"
-
-
 
 switch:
   - id: vibra
@@ -83,11 +74,6 @@ binary_sensor:
   - platform: status
     name: "API Status"
     id: api_connected
-    internal: true
-
-  - platform: homeassistant
-    id: night_sensor
-    entity_id: binary_sensor.is_nighttime
     internal: true
 
 tx_ultimate_touch:
@@ -111,29 +97,22 @@ tx_ultimate_switch:
   buttons:
     - position: left
       switch_relay: true
-      relay:                            # inline declaration
+      relay:                            # inline
         id: relay_1
-        name: "L1"
+        name: "L1-inline"
         output: l1_output
-        restore_mode: RESTORE_DEFAULT_OFF
     - position: center
       switch_relay: true
-      relay:
-        id: relay_2
-        name: "L2"
-        output: l2_output
+      relay: relay_2                    # ref to external declaration
     - position: right
-      switch_relay: fallback_ha
-      relay:
+      switch_relay: true
+      relay:                            # inline
         id: relay_3
-        name: "L3"
+        name: "L3-inline"
         output: l3_output
         icon: mdi:lightbulb
   leds: leds
-  vibra: vibra
   api_connected: api_connected
-  nightlight:
-    sensor: night_sensor
   themes:
     - name: "Default"
       button:
@@ -145,8 +124,6 @@ tx_ultimate_switch:
       touch:
         color: [0, 100, 100]
         brightness: 1.0
-        effect:
-          type: scan
       swipe_left:
         color: [0, 100, 0]
         brightness: 1.0
@@ -159,8 +136,4 @@ tx_ultimate_switch:
       multi_touch:
         color: [0, 0, 0]
         brightness: 1.0
-        effect:
-          type: rainbow
   active_theme: "Default"
-  button_on_time: 500ms
-  touch_led_duration: 6s

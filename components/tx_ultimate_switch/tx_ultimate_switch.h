@@ -38,6 +38,21 @@ enum class RoomType : uint8_t {
   DARK     = 2,  ///< No windows: nightlight always ON; sleep/away still respected
 };
 
+// ── Button position (user-facing label, mirrored if reverse_) ────────────────
+enum class ButtonPosition : uint8_t {
+  LEFT   = 0,
+  CENTER = 1,
+  RIGHT  = 2,
+};
+
+// ── Switch-relay mode ────────────────────────────────────────────────────────
+enum class SwitchRelayMode : uint8_t {
+  ALWAYS        = 0,  ///< toggle relay on every press
+  NEVER         = 1,  ///< never toggle (HA-only) — also forces relay ON at init
+  FALLBACK_HA   = 2,  ///< toggle only when api_connected is OFF
+  FALLBACK_WIFI = 3,  ///< toggle only when wifi_connected is OFF
+};
+
 // ── One visual theme ─────────────────────────────────────────────────────────
 struct Theme {
   std::string name;
@@ -96,25 +111,34 @@ struct SoundPack {
 
 // ── Button config ─────────────────────────────────────────────────────────────
 struct ButtonConfig {
-  bool switch_relay{true};
-  light::LightState *relay{nullptr};            // set by codegen
-  binary_sensor::BinarySensor *state_sensor{nullptr};  // external state (switch_relay:false)
-  bool last_relay_state{false};                 // tracked in loop() for LED refresh
+  ButtonPosition position{ButtonPosition::LEFT};
+  SwitchRelayMode mode{SwitchRelayMode::FALLBACK_HA};
+  light::LightState *relay{nullptr};                       // optional, set by codegen
+  binary_sensor::BinarySensor *state_sensor{nullptr};      // external state for LED display
+  binary_sensor::BinarySensor *press_sensor{nullptr};      // exposed to HA, pulsed on press
+  bool last_relay_state{false};                            // tracked in loop() for LED refresh
 };
 
 // ── Main component ────────────────────────────────────────────────────────────
 class TxUltimateSwitch : public Component {
  public:
   // ── Wiring setters (called by Python codegen) ───────────────────────────────
-  void set_button_count(uint8_t n) { button_count_ = n; }
   void set_reverse(bool r) { reverse_ = r; }
 
-  void add_button(bool switch_relay, light::LightState *relay) {
-    buttons_.push_back({switch_relay, relay});
+  void add_button(ButtonPosition position, SwitchRelayMode mode, light::LightState *relay) {
+    ButtonConfig b;
+    b.position = position;
+    b.mode = mode;
+    b.relay = relay;
+    buttons_.push_back(b);
   }
 
   void set_button_state_sensor(uint8_t idx, binary_sensor::BinarySensor *s) {
     if (idx < buttons_.size()) buttons_[idx].state_sensor = s;
+  }
+
+  void set_button_press_sensor(uint8_t idx, binary_sensor::BinarySensor *s) {
+    if (idx < buttons_.size()) buttons_[idx].press_sensor = s;
   }
 
   void set_leds(light::LightState *leds) { leds_ = leds; }
@@ -142,8 +166,9 @@ class TxUltimateSwitch : public Component {
   void add_sound_pack(SoundPack sp) { sound_packs_.push_back(std::move(sp)); }
   void set_initial_theme(const std::string &name) { initial_theme_ = name; }
 
-  // API connected binary sensor (for offline relay control fallback)
+  // Connectivity sensors (drive fallback_ha / fallback_wifi modes)
   void set_api_connected(binary_sensor::BinarySensor *s) { api_connected_ = s; }
+  void set_wifi_connected(binary_sensor::BinarySensor *s) { wifi_connected_ = s; }
 
   // button_on_time in ms
   void set_button_on_time_ms(uint32_t ms) { button_on_time_ms_ = ms; }
@@ -189,12 +214,12 @@ class TxUltimateSwitch : public Component {
   void apply_button_led_(uint8_t idx, bool relay_on);
   void apply_nightlight_led_();
   void cancel_touch_led_timer_();
+  ButtonConfig *button_at_position_(ButtonPosition pos);
 
   const Theme *active_theme_() const;
   const SoundPack *active_sound_pack_() const;
   void play_sound_(audio::AudioFile *file);
 
-  uint8_t button_count_{3};
   bool reverse_{false};
   std::vector<ButtonConfig> buttons_;
 
@@ -210,6 +235,7 @@ class TxUltimateSwitch : public Component {
   binary_sensor::BinarySensor *sleep_sensor_{nullptr};
   binary_sensor::BinarySensor *away_sensor_{nullptr};
   binary_sensor::BinarySensor *api_connected_{nullptr};
+  binary_sensor::BinarySensor *wifi_connected_{nullptr};
 
   select::Select *theme_select_{nullptr};
 

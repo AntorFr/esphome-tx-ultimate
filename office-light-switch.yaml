@@ -104,18 +104,32 @@ media_player:
 
 tx_ultimate_switch:
   id: tx
-  button_count: 3
 
   buttons:
-    button_1:
+    - position: left
       switch_relay: true
-      relay: relay_2
-    button_2:
+      relay:
+        id: relay_2
+        name: "L2"
+        output: l2_output
+      sensor:
+        name: "Touchfield Gauche"
+    - position: center
       switch_relay: true
-      relay: relay_1
-    button_3:
+      relay:
+        id: relay_1
+        name: "L1"
+        output: l1_output
+      sensor:
+        name: "Touchfield Centre"
+    - position: right
       switch_relay: true
-      relay: relay_3
+      relay:
+        id: relay_3
+        name: "L3"
+        output: l3_output
+      sensor:
+        name: "Touchfield Droit"
 
   reverse: true   # appareil monté à l'envers (haut→bas)
 
@@ -124,6 +138,7 @@ tx_ultimate_switch:
   vibra: vibra
   media_player: mp
   api_connected: api_connected
+  wifi_connected: wifi_connected
 
   nightlight:
     away_sensor: away_sensor

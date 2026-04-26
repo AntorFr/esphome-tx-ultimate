@@ -154,21 +154,6 @@ switch:
     restore_mode: ALWAYS_ON
 
 light:
-  - id: relay_1
-    platform: binary
-    name: "L1"
-    output: l1_output
-
-  - id: relay_2
-    platform: binary
-    name: "L2"
-    output: l2_output
-
-  - id: relay_3
-    platform: binary
-    name: "L3"
-    output: l3_output
-
   - id: leds
     platform: esp32_rmt_led_strip
     chipset: WS2812
@@ -223,14 +208,31 @@ tx_ultimate_touch:
 
 tx_ultimate_switch:
   id: tx
-  button_count: 3
   buttons:
-    - switch_relay: true
-      relay: relay_1
-    - switch_relay: true
-      relay: relay_2
-    - switch_relay: true
-      relay: relay_3
+    - position: left
+      switch_relay: true
+      relay:
+        id: relay_1
+        name: "L1"
+        output: l1_output
+      sensor:
+        name: "Touchfield 1"
+    - position: center
+      switch_relay: true
+      relay:
+        id: relay_2
+        name: "L2"
+        output: l2_output
+      sensor:
+        name: "Touchfield 2"
+    - position: right
+      switch_relay: fallback_ha
+      relay:
+        id: relay_3
+        name: "L3"
+        output: l3_output
+      sensor:
+        name: "Touchfield 3"
   leds: leds
   vibra: vibra
   media_player: media_out

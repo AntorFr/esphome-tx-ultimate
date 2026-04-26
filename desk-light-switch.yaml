@@ -3,9 +3,6 @@ substitutions:
   friendly_name: "Bouton applique bureau"
   area: "Bureau"
 
-  # Relay 1 — reste ON en permanence pour alimenter l'ampoule connectée (ex. Hue)
-  relay_1_restore_mode: RESTORE_DEFAULT_ON
-
   # Capteur HA utilisé comme inhibiteur de nightlight quand absent
   ha_away_sensor: input_boolean.away_mode
 
@@ -122,18 +119,24 @@ media_player:
 # ── Composant switch principal ────────────────────────────────────────────────
 tx_ultimate_switch:
   id: tx
-  button_count: 1
 
   buttons:
-    button_1:               # bouton unique (droite)
-      switch_relay: false   # relay toujours ON — ampoule connectée (ex. Hue) alimentée en permanence
-      relay: relay_1        # c'est HA qui pilote l'ampoule, pas le relay
+    - position: right
+      switch_relay: false              # mode NEVER — relay forcé ON, HA pilote l'ampoule Hue
+      relay:                           # relais déclaré inline (injecté en light:platform:binary)
+        id: relay_1
+        name: "L1"
+        output: l1_output
+        restore_mode: RESTORE_DEFAULT_ON
+      sensor:                          # exposé à HA pour automatisation (toggle Hue)
+        name: "Bouton applique"
 
   leds: leds
 
   vibra: vibra
   media_player: mp
   api_connected: api_connected
+  wifi_connected: wifi_connected
 
   nightlight:
     # sensor: night_sensor   # décommenter si ha_night_sensor est configuré

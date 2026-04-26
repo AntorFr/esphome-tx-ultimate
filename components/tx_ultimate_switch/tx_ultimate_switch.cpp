@@ -17,8 +17,8 @@ static const char *TAG = "tx_ultimate_switch";
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
 
 void TxUltimateSwitch::setup() {
-  ESP_LOGI(TAG, "TX Ultimate Switch setup (button_count=%d, themes=%d)",
-           button_count_, themes_.size());
+  ESP_LOGI(TAG, "TX Ultimate Switch setup (buttons=%d, themes=%d)",
+           buttons_.size(), themes_.size());
 
   // Wire up nightlight sensor callbacks
   if (night_sensor_ != nullptr) {
@@ -34,9 +34,9 @@ void TxUltimateSwitch::setup() {
   // Wire relay state callbacks
   // (state changes are detected in loop() instead of listener interface)
 
-  // Wire state sensor callbacks for non-relay buttons
+  // Wire state sensor callbacks (LED follows external state when present)
   for (auto &btn : buttons_) {
-    if (!btn.switch_relay && btn.state_sensor != nullptr) {
+    if (btn.state_sensor != nullptr) {
       btn.state_sensor->add_on_state_callback([this](bool) { refresh_led_default_(); });
     }
   }
@@ -53,7 +53,7 @@ void TxUltimateSwitch::setup() {
 }
 
 void TxUltimateSwitch::dump_config() {  ESP_LOGCONFIG(TAG, "TX Ultimate Switch:");
-  ESP_LOGCONFIG(TAG, "  Button count: %d", button_count_);
+  ESP_LOGCONFIG(TAG, "  Buttons: %d", buttons_.size());
   ESP_LOGCONFIG(TAG, "  Themes: %d", themes_.size());
   ESP_LOGCONFIG(TAG, "  Night sensor: %s", night_sensor_ != nullptr ? "configured" : "not configured");
   ESP_LOGCONFIG(TAG, "  Sleep sensor: %s", sleep_sensor_ != nullptr ? "configured" : "not configured");
@@ -66,9 +66,10 @@ void TxUltimateSwitch::dump_config() {  ESP_LOGCONFIG(TAG, "TX Ultimate Switch:"
 // ── Loop (relay state change detection) ──────────────────────────────────────
 
 void TxUltimateSwitch::loop() {
-  for (uint8_t i = 0; i < button_count_ && i < buttons_.size(); i++) {
-    auto &btn = buttons_[i];
-    if (btn.relay == nullptr || !btn.switch_relay) continue;
+  // When the LED reflects the relay (no external state_sensor), poll relay state
+  // to detect external changes (e.g., HA toggling the relay light directly).
+  for (auto &btn : buttons_) {
+    if (btn.relay == nullptr || btn.state_sensor != nullptr) continue;
     bool current = btn.relay->current_values.is_on();
     if (current != btn.last_relay_state) {
       btn.last_relay_state = current;
@@ -130,19 +131,17 @@ void TxUltimateSwitch::refresh_led_default_() {
     }
   }
 
-  // Button LEDs
-  for (uint8_t i = 0; i < button_count_ && i < buttons_.size(); i++) {
-    auto &btn = buttons_[i];
+  // Button LEDs — drive each by position; state_sensor wins over relay
+  for (auto &btn : buttons_) {
     bool state_on;
-    if (btn.switch_relay) {
-      if (btn.relay == nullptr) continue;
-      state_on = btn.relay->current_values.is_on();
-    } else if (btn.state_sensor != nullptr) {
+    if (btn.state_sensor != nullptr) {
       state_on = btn.state_sensor->state;
+    } else if (btn.relay != nullptr) {
+      state_on = btn.relay->current_values.is_on();
     } else {
-      continue;  // no state source → skip button LED
+      continue;  // no state source → skip
     }
-    apply_button_led_(i, state_on);
+    apply_button_led_(static_cast<uint8_t>(btn.position), state_on);
   }
 }
 
@@ -249,30 +248,69 @@ void TxUltimateSwitch::on_touch_release(int pos) {
   const SoundPack *sp = active_sound_pack_();
   if (sp != nullptr) play_sound_(sp->click);
 
-  // Route to button
+  if (buttons_.empty()) return;
+
+  // Route to a button by computing the target position from touch x.
   if (reverse_) pos = 10 - pos;
-  uint8_t btn_idx = 0;
-  if (button_count_ == 1) {
-    btn_idx = 0;
-  } else if (button_count_ == 2) {
-    btn_idx = (pos <= 5) ? 0 : 1;
+
+  ButtonPosition target_pos;
+  size_t n = buttons_.size();
+  if (n == 1) {
+    // Single button: full surface routes to it regardless of declared position.
+    target_pos = buttons_[0].position;
+  } else if (n == 2) {
+    // 50/50 split, ordered by position (left < center < right).
+    ButtonPosition p0 = buttons_[0].position;
+    ButtonPosition p1 = buttons_[1].position;
+    ButtonPosition leftmost  = (static_cast<int>(p0) < static_cast<int>(p1)) ? p0 : p1;
+    ButtonPosition rightmost = (static_cast<int>(p0) < static_cast<int>(p1)) ? p1 : p0;
+    target_pos = (pos <= 5) ? leftmost : rightmost;
   } else {
-    if (pos <= 3) btn_idx = 0;
-    else if (pos <= 7) btn_idx = 1;
-    else btn_idx = 2;
+    // 3 buttons: strict thirds.
+    if      (pos <= 3) target_pos = ButtonPosition::LEFT;
+    else if (pos <= 7) target_pos = ButtonPosition::CENTER;
+    else               target_pos = ButtonPosition::RIGHT;
   }
 
-  if (btn_idx < buttons_.size()) {
-    auto &btn = buttons_[btn_idx];
-    bool offline = (api_connected_ == nullptr || !api_connected_->state);
-    if (btn.switch_relay || offline) {
-      if (btn.relay != nullptr) {
-        auto call = btn.relay->toggle();
-        call.perform();
-      }
-    }
+  ButtonConfig *btn = button_at_position_(target_pos);
+  if (btn == nullptr) {
+    ESP_LOGD(TAG, "Release pos=%d -> no button at position %d", pos, (int) target_pos);
+    return;
   }
-  ESP_LOGD(TAG, "Release pos=%d -> button %d", pos, btn_idx);
+
+  // Decide whether to toggle the relay locally based on mode.
+  bool should_toggle = false;
+  switch (btn->mode) {
+    case SwitchRelayMode::ALWAYS:
+      should_toggle = true;
+      break;
+    case SwitchRelayMode::NEVER:
+      should_toggle = false;
+      break;
+    case SwitchRelayMode::FALLBACK_HA:
+      should_toggle = (api_connected_ == nullptr || !api_connected_->state);
+      break;
+    case SwitchRelayMode::FALLBACK_WIFI:
+      should_toggle = (wifi_connected_ == nullptr || !wifi_connected_->state);
+      break;
+  }
+  if (should_toggle && btn->relay != nullptr) {
+    auto call = btn->relay->toggle();
+    call.perform();
+  }
+
+  // Publish the press sensor (visible to HA) — pulse ON, then OFF after button_on_time_ms.
+  if (btn->press_sensor != nullptr) {
+    auto *bs = btn->press_sensor;
+    bs->publish_state(true);
+    // Unique timer id per button so retriggers extend OFF without cross-button interference.
+    uint32_t timer_id = static_cast<uint32_t>(btn - buttons_.data());
+    App.scheduler.set_timeout(this, timer_id, button_on_time_ms_, [bs]() {
+      bs->publish_state(false);
+    });
+  }
+
+  ESP_LOGD(TAG, "Release pos=%d -> position %d, toggle=%d", pos, (int) target_pos, should_toggle);
 }
 
 void TxUltimateSwitch::on_swipe_left() {
@@ -344,12 +382,19 @@ void TxUltimateSwitch::exit_fallback_mode() {
 void TxUltimateSwitch::init_relays() {
   for (uint8_t i = 0; i < buttons_.size(); i++) {
     auto &btn = buttons_[i];
-    if (!btn.switch_relay && btn.relay != nullptr) {
-      ESP_LOGD(TAG, "init_relays: forcing relay %d ON (not linked to switch)", i);
+    if (btn.mode == SwitchRelayMode::NEVER && btn.relay != nullptr) {
+      ESP_LOGD(TAG, "init_relays: forcing relay %d ON (mode=NEVER)", i);
       auto call = btn.relay->turn_on();
       call.perform();
     }
   }
+}
+
+ButtonConfig *TxUltimateSwitch::button_at_position_(ButtonPosition pos) {
+  for (auto &b : buttons_) {
+    if (b.position == pos) return &b;
+  }
+  return nullptr;
 }
 
 // ── Theme & sound helpers ─────────────────────────────────────────────────────
