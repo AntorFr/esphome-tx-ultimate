@@ -460,13 +460,15 @@ void TxUltimateSwitch::play_sound_(audio::AudioFile *file) {
 
 #ifdef USE_ESP32
   auto *mp = static_cast<speaker::SpeakerMediaPlayer *>(media_player_);
+  // Stop any ongoing announcement, then always play (priority semantics from
+  // the legacy play_sound script). The state check that was here previously
+  // caused sounds to be skipped: state transitions are asynchronous, so right
+  // after our STOP the player is still reported as ANNOUNCING.
   mp->make_call()
     .set_command(media_player::MediaPlayerCommand::MEDIA_PLAYER_COMMAND_STOP)
     .set_announcement(true)
     .perform();
-  if (media_player_->state != media_player::MediaPlayerState::MEDIA_PLAYER_STATE_ANNOUNCING) {
-    mp->play_file(file, true, false);
-  }
+  mp->play_file(file, true, false);
 #endif
 }
 #else
