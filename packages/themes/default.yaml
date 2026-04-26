@@ -58,6 +58,8 @@ tx_ultimate_switch:
         brightness: 1.0
         effect:
           type: scan
+          move_interval: 100ms
+          scan_width: 1
       swipe_left:
         color: [0, 80, 100]
         brightness: 1.0
@@ -95,6 +97,8 @@ tx_ultimate_switch:
         brightness: 1.0
         effect:
           type: scan
+          move_interval: 100ms
+          scan_width: 1
       swipe_left:
         color: [0, 80, 0]
         brightness: 1.0
