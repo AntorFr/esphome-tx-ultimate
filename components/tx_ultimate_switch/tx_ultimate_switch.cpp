@@ -211,13 +211,15 @@ void TxUltimateSwitch::apply_button_led_(uint8_t idx, bool relay_on) {
 }
 
 void TxUltimateSwitch::apply_touch_led_(const Color3 &color, float brightness,
-                                         const std::string &effect) {
+                                         const std::string &effect,
+                                         uint32_t duration_ms) {
   if (leds_top_ == nullptr) return;
   auto call = leds_top_->turn_on();
   call.set_brightness(brightness);
   call.set_red(color.r / 100.0f);
   call.set_green(color.g / 100.0f);
   call.set_blue(color.b / 100.0f);
+  call.set_transition_length(0);
   if (!effect.empty() && effect != "None") {
     call.set_effect(effect);
   } else {
@@ -228,10 +230,9 @@ void TxUltimateSwitch::apply_touch_led_(const Color3 &color, float brightness,
   touch_led_active_ = true;
   touch_led_start_ms_ = millis();
 
-  // Schedule reset via App loop — we register a deferred callback
-  App.scheduler.set_timeout(this, "touch_led_reset", touch_led_duration_ms_, [this]() {
-    touch_led_active_ = false;
-    refresh_led_default_();
+  // Fallback reset (in case no release/swipe event arrives to clear it sooner).
+  App.scheduler.set_timeout(this, "touch_led_reset", duration_ms, [this]() {
+    clear_touch_led_();
   });
 }
 
@@ -239,16 +240,27 @@ void TxUltimateSwitch::cancel_touch_led_timer_() {
   App.scheduler.cancel_timeout(this, "touch_led_reset");
 }
 
+void TxUltimateSwitch::clear_touch_led_() {
+  cancel_touch_led_timer_();
+  touch_led_active_ = false;
+  refresh_led_default_();
+}
+
 // ── Touch event handlers ──────────────────────────────────────────────────────
 
 void TxUltimateSwitch::on_touch_press() {
   const Theme *t = active_theme_();
   if (t == nullptr) return;
-  apply_touch_led_(t->touch_color, t->touch_brightness, t->touch_effect);
+  apply_touch_led_(t->touch_color, t->touch_brightness, t->touch_effect,
+                    touch_led_duration_ms_);
   ESP_LOGD(TAG, "Touch press");
 }
 
 void TxUltimateSwitch::on_touch_release(int pos) {
+  // Cancel the touch effect started by on_touch_press immediately on release
+  // (legacy behaviour: the touchfield BS chain triggered refresh_led_default).
+  clear_touch_led_();
+
   // Vibration
   if (vibra_ != nullptr) vibra_->turn_on();
 
@@ -321,11 +333,13 @@ void TxUltimateSwitch::on_touch_release(int pos) {
   ESP_LOGD(TAG, "Release pos=%d -> position %d, toggle=%d", pos, (int) target_pos, should_toggle);
 }
 
+// Swipe / long / multi: short flash (button_on_time), not the full 6s touch fallback.
 void TxUltimateSwitch::on_swipe_left() {
   if (vibra_ != nullptr) vibra_->turn_on();
   const Theme *t = active_theme_();
   const SoundPack *sp = active_sound_pack_();
-  if (t != nullptr) apply_touch_led_(t->swipe_left_color, t->swipe_left_brightness, t->swipe_left_effect);
+  if (t != nullptr) apply_touch_led_(t->swipe_left_color, t->swipe_left_brightness,
+                                      t->swipe_left_effect, button_on_time_ms_);
   if (sp != nullptr) play_sound_(sp->slide);
   ESP_LOGD(TAG, "Swipe left");
 }
@@ -334,7 +348,8 @@ void TxUltimateSwitch::on_swipe_right() {
   if (vibra_ != nullptr) vibra_->turn_on();
   const Theme *t = active_theme_();
   const SoundPack *sp = active_sound_pack_();
-  if (t != nullptr) apply_touch_led_(t->swipe_right_color, t->swipe_right_brightness, t->swipe_right_effect);
+  if (t != nullptr) apply_touch_led_(t->swipe_right_color, t->swipe_right_brightness,
+                                      t->swipe_right_effect, button_on_time_ms_);
   if (sp != nullptr) play_sound_(sp->slide);
   ESP_LOGD(TAG, "Swipe right");
 }
@@ -343,7 +358,8 @@ void TxUltimateSwitch::on_full_touch_release() {
   if (vibra_ != nullptr) vibra_->turn_on();
   const Theme *t = active_theme_();
   const SoundPack *sp = active_sound_pack_();
-  if (t != nullptr) apply_touch_led_(t->multi_touch_color, t->multi_touch_brightness, t->multi_touch_effect);
+  if (t != nullptr) apply_touch_led_(t->multi_touch_color, t->multi_touch_brightness,
+                                      t->multi_touch_effect, button_on_time_ms_);
   if (sp != nullptr) play_sound_(sp->multi_press);
   ESP_LOGD(TAG, "Full touch release");
 }
@@ -352,7 +368,8 @@ void TxUltimateSwitch::on_long_touch_release() {
   if (vibra_ != nullptr) vibra_->turn_on();
   const Theme *t = active_theme_();
   const SoundPack *sp = active_sound_pack_();
-  if (t != nullptr) apply_touch_led_(t->long_press_color, t->long_press_brightness, t->long_press_effect);
+  if (t != nullptr) apply_touch_led_(t->long_press_color, t->long_press_brightness,
+                                      t->long_press_effect, button_on_time_ms_);
   if (sp != nullptr) play_sound_(sp->long_press);
   ESP_LOGD(TAG, "Long touch release");
 }

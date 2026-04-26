@@ -210,7 +210,9 @@ class TxUltimateSwitch : public Component {
   NightlightMode compute_nightlight_mode_() const;
   void refresh_nightlight_();
   void refresh_led_default_();
-  void apply_touch_led_(const Color3 &color, float brightness, const std::string &effect);
+  void apply_touch_led_(const Color3 &color, float brightness, const std::string &effect,
+                         uint32_t duration_ms);
+  void clear_touch_led_();
   void apply_button_led_(uint8_t idx, bool relay_on);
   void apply_nightlight_led_();
   void cancel_touch_led_timer_();
