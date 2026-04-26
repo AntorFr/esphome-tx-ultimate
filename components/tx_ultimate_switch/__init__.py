@@ -92,7 +92,7 @@ PartitionLightOutput = partitions_ns.class_(
 AddressableSegment = partitions_ns.class_("AddressableSegment")
 
 light_ns = cg.esphome_ns.namespace("light")
-LightState       = light_ns.class_("LightState", cg.Component, cg.Nameable)
+LightState       = light_ns.class_("LightState", cg.EntityBase, cg.Component)
 LightRestoreMode = light_ns.enum("LightRestoreMode")
 
 AddressableScanEffect            = light_ns.class_("AddressableScanEffect")
