@@ -423,7 +423,10 @@ async def to_code(config):
     cg.add(var.set_leds_nightlight(leds_nl_var))
 
     # button LEDs: normal right=7 middle=9 left=11; reversed right=11 middle=9 left=7
-    btn_pixels = [11, 9, 7] if is_reversed else [7, 9, 11]
+    # ButtonPosition value index (LEFT=0, CENTER=1, RIGHT=2) → strip pixel.
+    # Per the legacy YAML naming (leds_button_left=11, leds_button_right=7),
+    # head-up: user-LEFT=pixel 11, user-RIGHT=pixel 7. Upside-down rotates 180°.
+    btn_pixels = [7, 9, 11] if is_reversed else [11, 9, 7]
     for i in range(3):
         btn_var = await _create_partition(
             config[CONF_LEDS_BTN_OUTPUT_IDS[i]],

@@ -279,17 +279,18 @@ void TxUltimateSwitch::on_touch_release(int pos) {
     // Single button: full surface routes to it regardless of declared position.
     target_pos = buttons_[0].position;
   } else if (n == 2) {
-    // 50/50 split, ordered by position (left < center < right).
+    // 50/50 split. Hardware reports pos=0 at the panel's right side, so low
+    // pos → user-RIGHT, high pos → user-LEFT (after upside_down mirroring).
     ButtonPosition p0 = buttons_[0].position;
     ButtonPosition p1 = buttons_[1].position;
     ButtonPosition leftmost  = (static_cast<int>(p0) < static_cast<int>(p1)) ? p0 : p1;
     ButtonPosition rightmost = (static_cast<int>(p0) < static_cast<int>(p1)) ? p1 : p0;
-    target_pos = (pos <= 5) ? leftmost : rightmost;
+    target_pos = (pos <= 5) ? rightmost : leftmost;
   } else {
-    // 3 buttons: strict thirds.
-    if      (pos <= 3) target_pos = ButtonPosition::LEFT;
+    // 3 buttons: strict thirds. pos=0 maps to user-RIGHT (hardware convention).
+    if      (pos <= 3) target_pos = ButtonPosition::RIGHT;
     else if (pos <= 7) target_pos = ButtonPosition::CENTER;
-    else               target_pos = ButtonPosition::RIGHT;
+    else               target_pos = ButtonPosition::LEFT;
   }
 
   ButtonConfig *btn = button_at_position_(target_pos);
