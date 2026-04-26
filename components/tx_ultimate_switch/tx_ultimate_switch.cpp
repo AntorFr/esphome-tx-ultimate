@@ -115,9 +115,13 @@ void TxUltimateSwitch::refresh_nightlight_() {
 void TxUltimateSwitch::refresh_led_default_() {
   if (touch_led_active_) return;  // Touch animation has priority, skip
 
-  // Turn off top LEDs (touch/swipe feedback zone)
+  // Turn off top LEDs (touch/swipe feedback zone). Setting the effect to
+  // "None" is required: turn_off() alone keeps the previously-set effect
+  // pointer alive on the LightState, so its update() keeps drawing.
   if (leds_top_ != nullptr) {
     auto call = leds_top_->turn_off();
+    call.set_effect("None");
+    call.set_transition_length(0);
     call.perform();
   }
 
@@ -127,6 +131,8 @@ void TxUltimateSwitch::refresh_led_default_() {
   } else {
     if (leds_nightlight_ != nullptr) {
       auto call = leds_nightlight_->turn_off();
+      call.set_effect("None");
+      call.set_transition_length(0);
       call.perform();
     }
   }
@@ -196,6 +202,8 @@ void TxUltimateSwitch::apply_button_led_(uint8_t idx, bool relay_on) {
     }
   } else {
     auto off = leds_button_[idx]->turn_off();
+    off.set_effect("None");
+    off.set_transition_length(0);
     off.perform();
     return;
   }

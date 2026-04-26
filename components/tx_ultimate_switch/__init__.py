@@ -417,6 +417,8 @@ async def _create_partition(output_id, state_id, leds_var, segments):
     state_var = cg.new_Pvariable(state_id, output_var)
     await cg.register_component(state_var, {})
     cg.add(state_var.set_restore_mode(LightRestoreMode.LIGHT_RESTORE_DEFAULT_OFF))
+    # Snap on/off so effects stop instantly instead of fading.
+    cg.add(state_var.set_default_transition_length(0))
     return state_var
 
 
