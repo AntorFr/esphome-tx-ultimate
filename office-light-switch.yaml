@@ -120,8 +120,6 @@ tx_ultimate_switch:
   reverse: true   # appareil monté à l'envers (haut→bas)
 
   leds: leds
-  leds_top: leds_top
-  leds_nightlight: leds_nightlight
 
   vibra: vibra
   media_player: mp

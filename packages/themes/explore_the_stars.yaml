@@ -4,27 +4,38 @@
 tx_ultimate_switch:
   themes:
     - name: "Explore the Stars"
-      button_color: [0, 0, 100]
-      button_brightness: 0.6
-      nightlight_color: [20, 0, 80]
-      nightlight_brightness: 0.15
-      nightlight_effect: "Stars"
-      sleep_color: [60, 0, 0]       # rouge doux — repère de nuit sans gêner le sommeil
-      sleep_brightness: 0.08
-      sleep_effect: "None"
-      touch_color: [0, 50, 100]
-      touch_brightness: 1.0
-      touch_effect: "Scan"
-      swipe_left_color: [0, 80, 100]
-      swipe_left_brightness: 1.0
-      swipe_left_effect: "None"
-      swipe_right_color: [50, 0, 100]
-      swipe_right_brightness: 1.0
-      swipe_right_effect: "None"
-      long_press_color: [100, 20, 100]
-      long_press_brightness: 1.0
-      long_press_effect: "None"
-      multi_touch_color: [0, 0, 0]
-      multi_touch_brightness: 1.0
-      multi_touch_effect: "Rainbow"
+      button:
+        color: [0, 0, 100]
+        brightness: 0.6
+      nightlight:
+        color: [20, 0, 80]
+        brightness: 0.15
+        effect:
+          type: stars
+          probability: 10%
+          color: [100, 100, 100]
+      sleep:
+        color: [60, 0, 0]  # rouge doux — repère de nuit sans gêner le sommeil
+        brightness: 0.08
+      touch:
+        color: [0, 50, 100]
+        brightness: 1.0
+        effect:
+          type: scan
+      swipe_left:
+        color: [0, 80, 100]
+        brightness: 1.0
+      swipe_right:
+        color: [50, 0, 100]
+        brightness: 1.0
+      long_press:
+        color: [100, 20, 100]
+        brightness: 1.0
+      multi_touch:
+        color: [0, 0, 0]
+        brightness: 1.0
+        effect:
+          type: rainbow
+          speed: 10
+          width: 20
       sound: explore_the_stars

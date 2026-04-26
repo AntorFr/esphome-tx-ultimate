@@ -148,6 +148,10 @@ class TxUltimateSwitch : public Component {
   // button_on_time in ms
   void set_button_on_time_ms(uint32_t ms) { button_on_time_ms_ = ms; }
   // touch LED display duration in ms
+
+  // ESP-NOW / offline fallback visual indicator
+  void enter_fallback_mode();
+  void exit_fallback_mode();
   void set_touch_led_duration_ms(uint32_t ms) { touch_led_duration_ms_ = ms; }
 
   // ── Touch event handlers (called from tx_ultimate_touch automation) ─────────
@@ -184,7 +188,9 @@ class TxUltimateSwitch : public Component {
   void apply_touch_led_(const Color3 &color, float brightness, const std::string &effect);
   void apply_button_led_(uint8_t idx, bool relay_on);
   void apply_nightlight_led_();
-  void cancel_touch_led_timer_();
+  void cancel_touch_led_timer_() {
+    App.scheduler.cancel_timeout(this, "touch_led_reset");
+  }
 
   const Theme *active_theme_() const;
   const SoundPack *active_sound_pack_() const;

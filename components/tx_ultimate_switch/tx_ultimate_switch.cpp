@@ -307,6 +307,34 @@ void TxUltimateSwitch::on_long_touch_release() {
   ESP_LOGD(TAG, "Long touch release");
 }
 
+// ── Fallback mode (ESP-NOW / HA offline visual indicator) ────────────────────
+
+void TxUltimateSwitch::enter_fallback_mode() {
+  cancel_touch_led_timer_();
+  touch_led_active_ = true;  // Block normal nightlight refresh
+
+  const Theme *t = active_theme_();
+  if (t == nullptr || leds_top_ == nullptr) return;
+
+  auto call = leds_top_->turn_on();
+  call.set_brightness(t->touch_brightness);
+  call.set_red(t->touch_color.r / 100.0f);
+  call.set_green(t->touch_color.g / 100.0f);
+  call.set_blue(t->touch_color.b / 100.0f);
+  if (!t->touch_effect.empty() && t->touch_effect != "None") {
+    call.set_effect(t->touch_effect);
+  }
+  call.perform();
+  ESP_LOGD(TAG, "Fallback mode entered");
+}
+
+void TxUltimateSwitch::exit_fallback_mode() {
+  touch_led_active_ = false;
+  cancel_touch_led_timer_();
+  refresh_led_default_();
+  ESP_LOGD(TAG, "Fallback mode exited");
+}
+
 // ── Relay init (called on boot + API reconnect) ───────────────────────────────
 
 void TxUltimateSwitch::init_relays() {

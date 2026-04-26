@@ -67,9 +67,9 @@ espnow_sender:
   recovery_timeout: 10s
   action: toggle
   on_fallback_enter:
-    - light.turn_on: {id: leds_top, effect: "Scan"}
+    - lambda: id(tx).enter_fallback_mode();
   on_fallback_exit:
-    - light.turn_on: {id: leds_top}
+    - lambda: id(tx).exit_fallback_mode();
 
 tx_ultimate_touch:
   on_release:
@@ -116,8 +116,6 @@ tx_ultimate_switch:
       relay: relay_1      # c'est HA qui pilote l'ampoule, pas le relay
 
   leds: leds
-  leds_top: leds_top
-  leds_nightlight: leds_nightlight
 
   vibra: vibra
   media_player: mp

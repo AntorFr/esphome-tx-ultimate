@@ -3,83 +3,103 @@ import esphome.config_validation as cv
 from esphome.components import light, binary_sensor, switch, select, media_player, audio
 from esphome.const import CONF_ID, CONF_NAME
 from esphome import automation
+from esphome.core import ID as CoreID
 
 CODEOWNERS = ["@AntorFr"]
 DEPENDENCIES = ["light", "binary_sensor"]
-AUTO_LOAD = ["select"]
+AUTO_LOAD = ["select", "partition"]
 
-MULTI_CONF = True  # allow multiple instances (e.g. future blind variant)
+MULTI_CONF = True
 
 CONF_TX_ULTIMATE_SWITCH = "tx_ultimate_switch"
 
-# Top-level keys
-CONF_BUTTON_COUNT = "button_count"
-CONF_BUTTONS = "buttons"
-CONF_LEDS = "leds"
-CONF_LEDS_TOP = "leds_top"
-CONF_LEDS_NIGHTLIGHT = "leds_nightlight"
-CONF_VIBRA = "vibra"
-CONF_MEDIA_PLAYER = "media_player"
-CONF_NIGHTLIGHT = "nightlight"
-CONF_THEMES = "themes"
-CONF_ACTIVE_THEME = "active_theme"
-CONF_SOUND_PACKS = "sound_packs"
-CONF_API_CONNECTED = "api_connected"
-CONF_BUTTON_ON_TIME = "button_on_time"
+# ── Top-level config keys ─────────────────────────────────────────────────────
+CONF_BUTTON_COUNT      = "button_count"
+CONF_BUTTONS           = "buttons"
+CONF_LEDS              = "leds"
+CONF_VIBRA             = "vibra"
+CONF_MEDIA_PLAYER      = "media_player"
+CONF_NIGHTLIGHT        = "nightlight"
+CONF_THEMES            = "themes"
+CONF_ACTIVE_THEME      = "active_theme"
+CONF_SOUND_PACKS       = "sound_packs"
+CONF_API_CONNECTED     = "api_connected"
+CONF_BUTTON_ON_TIME    = "button_on_time"
 CONF_TOUCH_LED_DURATION = "touch_led_duration"
-CONF_REVERSE = "reverse"
+CONF_REVERSE           = "reverse"
 
-# Nightlight keys
+# ── Nightlight config keys ────────────────────────────────────────────────────
 CONF_NIGHT_SENSOR = "sensor"
 CONF_SLEEP_SENSOR = "sleep_sensor"
-CONF_AWAY_SENSOR = "away_sensor"
-CONF_ROOM_TYPE = "room_type"
+CONF_AWAY_SENSOR  = "away_sensor"
+CONF_ROOM_TYPE    = "room_type"
 
-# Button keys
+# ── Button config keys ────────────────────────────────────────────────────────
 CONF_SWITCH_RELAY = "switch_relay"
-CONF_RELAY = "relay"
+CONF_RELAY        = "relay"
 CONF_STATE_SENSOR = "state_sensor"
 
-# Theme keys
-CONF_BUTTON_COLOR = "button_color"
-CONF_BUTTON_BRIGHTNESS = "button_brightness"
-CONF_NIGHTLIGHT_COLOR = "nightlight_color"
-CONF_NIGHTLIGHT_BRIGHTNESS = "nightlight_brightness"
-CONF_NIGHTLIGHT_EFFECT = "nightlight_effect"
-CONF_SLEEP_COLOR = "sleep_color"
-CONF_SLEEP_BRIGHTNESS = "sleep_brightness"
-CONF_SLEEP_EFFECT = "sleep_effect"
-CONF_TOUCH_COLOR = "touch_color"
-CONF_TOUCH_BRIGHTNESS = "touch_brightness"
-CONF_TOUCH_EFFECT = "touch_effect"
-CONF_SWIPE_LEFT_COLOR = "swipe_left_color"
-CONF_SWIPE_LEFT_BRIGHTNESS = "swipe_left_brightness"
-CONF_SWIPE_LEFT_EFFECT = "swipe_left_effect"
-CONF_SWIPE_RIGHT_COLOR = "swipe_right_color"
-CONF_SWIPE_RIGHT_BRIGHTNESS = "swipe_right_brightness"
-CONF_SWIPE_RIGHT_EFFECT = "swipe_right_effect"
-CONF_LONG_PRESS_COLOR = "long_press_color"
-CONF_LONG_PRESS_BRIGHTNESS = "long_press_brightness"
-CONF_LONG_PRESS_EFFECT = "long_press_effect"
-CONF_MULTI_TOUCH_COLOR = "multi_touch_color"
-CONF_MULTI_TOUCH_BRIGHTNESS = "multi_touch_brightness"
-CONF_MULTI_TOUCH_EFFECT = "multi_touch_effect"
-CONF_SOUND_PACK = "sound"
+# ── Effect config keys ────────────────────────────────────────────────────────
+CONF_EFFECT_TYPE        = "type"
+CONF_EFFECT_SPEED       = "speed"
+CONF_EFFECT_WIDTH       = "width"
+CONF_EFFECT_BLANK_SIZE  = "blank_size"
+CONF_EFFECT_BIT_SIZE    = "bit_size"
+CONF_EFFECT_PROBABILITY = "probability"
+CONF_EFFECT_COLOR       = "color"
 
-# Sound pack keys
-CONF_SOUND_PACK_NAME = "name"
-CONF_SOUND_CLICK = "click"
+# ── Theme slot config keys ────────────────────────────────────────────────────
+CONF_SLOT_COLOR      = "color"
+CONF_SLOT_BRIGHTNESS = "brightness"
+CONF_SLOT_EFFECT     = "effect"
+
+# ── Sound pack keys ───────────────────────────────────────────────────────────
+CONF_SOUND_PACK       = "sound"
+CONF_SOUND_PACK_NAME  = "name"
+CONF_SOUND_CLICK      = "click"
 CONF_SOUND_LONG_PRESS = "long_press"
 CONF_SOUND_MULTI_PRESS = "multi_press"
-CONF_SOUND_SLIDE = "slide"
+CONF_SOUND_SLIDE      = "slide"
+
+# ── Internal auto-generated partition IDs (declared in schema) ────────────────
+CONF_LEDS_TOP_OUTPUT_ID = "leds_top_output_id"
+CONF_LEDS_TOP_STATE_ID  = "leds_top_state_id"
+CONF_LEDS_NL_OUTPUT_ID  = "leds_nightlight_output_id"
+CONF_LEDS_NL_STATE_ID   = "leds_nightlight_state_id"
+CONF_LEDS_BTN_OUTPUT_IDS = [
+    "leds_button_0_output_id",
+    "leds_button_1_output_id",
+    "leds_button_2_output_id",
+]
+CONF_LEDS_BTN_STATE_IDS = [
+    "leds_button_0_state_id",
+    "leds_button_1_state_id",
+    "leds_button_2_state_id",
+]
 
 # ── C++ namespaced types ──────────────────────────────────────────────────────
 tx_ultimate_switch_ns = cg.esphome_ns.namespace("tx_ultimate_switch")
 TxUltimateSwitch = tx_ultimate_switch_ns.class_("TxUltimateSwitch", cg.Component)
-Theme = tx_ultimate_switch_ns.struct("Theme")
-Color3 = tx_ultimate_switch_ns.struct("Color3")
+Theme    = tx_ultimate_switch_ns.struct("Theme")
+Color3   = tx_ultimate_switch_ns.struct("Color3")
 SoundPack = tx_ultimate_switch_ns.struct("SoundPack")
 RoomType = tx_ultimate_switch_ns.enum("RoomType")
+
+partitions_ns = cg.esphome_ns.namespace("partition")
+PartitionLightOutput = partitions_ns.class_(
+    "PartitionLightOutput", light.AddressableLight
+)
+AddressableSegment = partitions_ns.class_("AddressableSegment")
+
+light_ns = cg.esphome_ns.namespace("light")
+LightState       = light_ns.class_("LightState", cg.Component, cg.Nameable)
+LightRestoreMode = light_ns.enum("LightRestoreMode")
+
+AddressableScanEffect            = light_ns.class_("AddressableScanEffect")
+AddressableRainbowEffect         = light_ns.class_("AddressableRainbowEffect")
+AddressableChristmasEffect       = light_ns.class_("AddressableChristmasEffect")
+AddressableStarsEffect           = light_ns.class_("AddressableStarsEffect")
+AddressableColorStarsEffectColor = light_ns.struct("AddressableColorStarsEffectColor")
 
 ROOM_TYPE_OPTIONS = {
     "standard": RoomType.STANDARD,
@@ -89,42 +109,55 @@ ROOM_TYPE_OPTIONS = {
 
 # ── Validators ────────────────────────────────────────────────────────────────
 def validate_color(value):
-    """Validate an [r, g, b] list with values in [0, 100]."""
     if not isinstance(value, (list, tuple)):
         raise cv.Invalid("Color must be a list of 3 integers [r, g, b]")
     if len(value) != 3:
-        raise cv.Invalid(f"Color must be exactly 3 integers [r, g, b], got {len(value)}")
+        raise cv.Invalid(
+            f"Color must be exactly 3 integers [r, g, b], got {len(value)}"
+        )
     return [cv.int_range(min=0, max=100)(v) for v in value]
 
 
 COLOR_SCHEMA = validate_color
 
+# ── Effect schema ─────────────────────────────────────────────────────────────
+EFFECT_SCHEMA = cv.Schema(
+    {
+        cv.Required(CONF_EFFECT_TYPE): cv.one_of(
+            "scan", "rainbow", "christmas", "stars", lower=True
+        ),
+        cv.Optional(CONF_EFFECT_SPEED,       default=10):  cv.int_range(min=1, max=255),
+        cv.Optional(CONF_EFFECT_WIDTH,       default=20):  cv.int_range(min=1, max=255),
+        cv.Optional(CONF_EFFECT_BLANK_SIZE,  default=1):   cv.int_range(min=0, max=255),
+        cv.Optional(CONF_EFFECT_BIT_SIZE,    default=1):   cv.int_range(min=1, max=255),
+        cv.Optional(CONF_EFFECT_PROBABILITY, default=0.3): cv.percentage,
+        cv.Optional(CONF_EFFECT_COLOR, default=[100, 100, 100]): COLOR_SCHEMA,
+    }
+)
+
+
+def _slot_schema(default_color, default_brightness, allow_effect=True):
+    d = {
+        cv.Optional(CONF_SLOT_COLOR,      default=default_color):      COLOR_SCHEMA,
+        cv.Optional(CONF_SLOT_BRIGHTNESS, default=default_brightness): cv.percentage,
+    }
+    if allow_effect:
+        d[cv.Optional(CONF_SLOT_EFFECT)] = cv.Any(None, EFFECT_SCHEMA)
+    return cv.Schema(d)
+
+
+# ── Theme schema (nested slots) ───────────────────────────────────────────────
 THEME_SCHEMA = cv.Schema(
     {
         cv.Required(CONF_NAME): cv.string,
-        cv.Optional(CONF_BUTTON_COLOR, default=[0, 0, 100]): COLOR_SCHEMA,
-        cv.Optional(CONF_BUTTON_BRIGHTNESS, default=0.7): cv.percentage,
-        cv.Optional(CONF_NIGHTLIGHT_COLOR, default=[80, 70, 0]): COLOR_SCHEMA,
-        cv.Optional(CONF_NIGHTLIGHT_BRIGHTNESS, default=0.2): cv.percentage,
-        cv.Optional(CONF_NIGHTLIGHT_EFFECT, default="None"): cv.string,
-        cv.Optional(CONF_SLEEP_COLOR, default=[80, 0, 0]): COLOR_SCHEMA,
-        cv.Optional(CONF_SLEEP_BRIGHTNESS, default=0.1): cv.percentage,
-        cv.Optional(CONF_SLEEP_EFFECT, default="None"): cv.string,
-        cv.Optional(CONF_TOUCH_COLOR, default=[0, 100, 100]): COLOR_SCHEMA,
-        cv.Optional(CONF_TOUCH_BRIGHTNESS, default=1.0): cv.percentage,
-        cv.Optional(CONF_TOUCH_EFFECT, default="Scan"): cv.string,
-        cv.Optional(CONF_SWIPE_LEFT_COLOR, default=[0, 100, 0]): COLOR_SCHEMA,
-        cv.Optional(CONF_SWIPE_LEFT_BRIGHTNESS, default=1.0): cv.percentage,
-        cv.Optional(CONF_SWIPE_LEFT_EFFECT, default="None"): cv.string,
-        cv.Optional(CONF_SWIPE_RIGHT_COLOR, default=[100, 0, 70]): COLOR_SCHEMA,
-        cv.Optional(CONF_SWIPE_RIGHT_BRIGHTNESS, default=1.0): cv.percentage,
-        cv.Optional(CONF_SWIPE_RIGHT_EFFECT, default="None"): cv.string,
-        cv.Optional(CONF_LONG_PRESS_COLOR, default=[100, 0, 0]): COLOR_SCHEMA,
-        cv.Optional(CONF_LONG_PRESS_BRIGHTNESS, default=1.0): cv.percentage,
-        cv.Optional(CONF_LONG_PRESS_EFFECT, default="None"): cv.string,
-        cv.Optional(CONF_MULTI_TOUCH_COLOR, default=[0, 0, 0]): COLOR_SCHEMA,
-        cv.Optional(CONF_MULTI_TOUCH_BRIGHTNESS, default=1.0): cv.percentage,
-        cv.Optional(CONF_MULTI_TOUCH_EFFECT, default="Rainbow"): cv.string,
+        cv.Optional("button",      default={}): _slot_schema([0,   0,   100], 0.7,  allow_effect=False),
+        cv.Optional("nightlight",  default={}): _slot_schema([80,  70,  0],   0.2),
+        cv.Optional("sleep",       default={}): _slot_schema([80,  0,   0],   0.1),
+        cv.Optional("touch",       default={}): _slot_schema([0,   100, 100], 1.0),
+        cv.Optional("swipe_left",  default={}): _slot_schema([0,   100, 0],   1.0),
+        cv.Optional("swipe_right", default={}): _slot_schema([100, 0,   70],  1.0),
+        cv.Optional("long_press",  default={}): _slot_schema([100, 0,   0],   1.0),
+        cv.Optional("multi_touch", default={}): _slot_schema([0,   0,   0],   1.0),
         cv.Optional(CONF_SOUND_PACK, default="explore_the_stars"): cv.string,
     }
 )
@@ -137,44 +170,43 @@ BUTTON_SCHEMA = cv.Schema(
     }
 )
 
-# Named button keys in physical order (right → middle → left)
 _BUTTON_KEYS_ORDERED = ["button_1", "button_2", "button_3"]
 
 
 def _normalize_buttons(value):
-    """Accept either a positional list or a named dict (button_1/button_2/button_3)."""
     if isinstance(value, list):
         return value
     if isinstance(value, dict):
         unknown = set(value.keys()) - set(_BUTTON_KEYS_ORDERED)
         if unknown:
             raise cv.Invalid(
-                f"Unknown button key(s): {unknown}. Valid keys: button_1, button_2, button_3."
+                f"Unknown button key(s): {unknown}. "
+                "Valid keys: button_1, button_2, button_3."
             )
         return [value[key] for key in _BUTTON_KEYS_ORDERED if key in value]
-    raise cv.Invalid("buttons must be a list or a mapping with button_1/button_2/button_3 keys")
+    raise cv.Invalid(
+        "buttons must be a list or a mapping with button_1/button_2/button_3 keys"
+    )
 
 
 NIGHTLIGHT_SCHEMA = cv.Schema(
     {
         cv.Optional(CONF_NIGHT_SENSOR): cv.use_id(binary_sensor.BinarySensor),
         cv.Optional(CONF_SLEEP_SENSOR): cv.use_id(binary_sensor.BinarySensor),
-        cv.Optional(CONF_AWAY_SENSOR): cv.use_id(binary_sensor.BinarySensor),
-        # room_type controls nightlight behaviour:
-        #   standard (default): nightlight follows night_sensor; sleep → dim guide
-        #   bedroom: sleep_sensor active → LED OFF
-        #   dark: nightlight always ON (no night_sensor needed); sleep/away still respected
-        cv.Optional(CONF_ROOM_TYPE, default="standard"): cv.enum(ROOM_TYPE_OPTIONS, lower=True),
+        cv.Optional(CONF_AWAY_SENSOR):  cv.use_id(binary_sensor.BinarySensor),
+        cv.Optional(CONF_ROOM_TYPE, default="standard"): cv.enum(
+            ROOM_TYPE_OPTIONS, lower=True
+        ),
     }
 )
 
 SOUND_PACK_SCHEMA = cv.Schema(
     {
         cv.Required(CONF_SOUND_PACK_NAME): cv.string,
-        cv.Optional(CONF_SOUND_CLICK): cv.use_id(audio.AudioFile),
-        cv.Optional(CONF_SOUND_LONG_PRESS): cv.use_id(audio.AudioFile),
+        cv.Optional(CONF_SOUND_CLICK):       cv.use_id(audio.AudioFile),
+        cv.Optional(CONF_SOUND_LONG_PRESS):  cv.use_id(audio.AudioFile),
         cv.Optional(CONF_SOUND_MULTI_PRESS): cv.use_id(audio.AudioFile),
-        cv.Optional(CONF_SOUND_SLIDE): cv.use_id(audio.AudioFile),
+        cv.Optional(CONF_SOUND_SLIDE):       cv.use_id(audio.AudioFile),
     }
 )
 
@@ -187,8 +219,6 @@ CONFIG_SCHEMA = cv.Schema(
             cv.ensure_list(BUTTON_SCHEMA),
         ),
         cv.Required(CONF_LEDS): cv.use_id(light.LightState),
-        cv.Required(CONF_LEDS_TOP): cv.use_id(light.LightState),
-        cv.Required(CONF_LEDS_NIGHTLIGHT): cv.use_id(light.LightState),
         cv.Optional(CONF_REVERSE, default=False): cv.boolean,
         cv.Optional(CONF_VIBRA): cv.use_id(switch.Switch),
         cv.Optional(CONF_MEDIA_PLAYER): cv.use_id(media_player.MediaPlayer),
@@ -197,16 +227,26 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_ACTIVE_THEME, default="Default"): cv.string,
         cv.Optional(CONF_SOUND_PACKS, default=[]): cv.ensure_list(SOUND_PACK_SCHEMA),
         cv.Optional(CONF_API_CONNECTED): cv.use_id(binary_sensor.BinarySensor),
-        cv.Optional(CONF_BUTTON_ON_TIME, default="500ms"): cv.positive_time_period_milliseconds,
-        cv.Optional(CONF_TOUCH_LED_DURATION, default="6s"): cv.positive_time_period_milliseconds,
+        cv.Optional(CONF_BUTTON_ON_TIME,     default="500ms"): cv.positive_time_period_milliseconds,
+        cv.Optional(CONF_TOUCH_LED_DURATION, default="6s"):    cv.positive_time_period_milliseconds,
+        # Internal auto-generated IDs for dynamic partition LightStates
+        cv.GenerateID(CONF_LEDS_TOP_OUTPUT_ID): cv.declare_id(PartitionLightOutput),
+        cv.GenerateID(CONF_LEDS_TOP_STATE_ID):  cv.declare_id(LightState),
+        cv.GenerateID(CONF_LEDS_NL_OUTPUT_ID):  cv.declare_id(PartitionLightOutput),
+        cv.GenerateID(CONF_LEDS_NL_STATE_ID):   cv.declare_id(LightState),
+        cv.GenerateID(CONF_LEDS_BTN_OUTPUT_IDS[0]): cv.declare_id(PartitionLightOutput),
+        cv.GenerateID(CONF_LEDS_BTN_STATE_IDS[0]):  cv.declare_id(LightState),
+        cv.GenerateID(CONF_LEDS_BTN_OUTPUT_IDS[1]): cv.declare_id(PartitionLightOutput),
+        cv.GenerateID(CONF_LEDS_BTN_STATE_IDS[1]):  cv.declare_id(LightState),
+        cv.GenerateID(CONF_LEDS_BTN_OUTPUT_IDS[2]): cv.declare_id(PartitionLightOutput),
+        cv.GenerateID(CONF_LEDS_BTN_STATE_IDS[2]):  cv.declare_id(LightState),
     }
 ).extend(cv.COMPONENT_SCHEMA)
 
 
-# ── Code generation ───────────────────────────────────────────────────────────
+# ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _make_color3(color_list):
-    """Return a C++ Color3 struct initializer."""
     return cg.StructInitializer(
         Color3,
         ("r", color_list[0]),
@@ -215,129 +255,221 @@ def _make_color3(color_list):
     )
 
 
+def _effect_cpp_name(theme_idx, slot_name, effect_type):
+    return f"tx_t{theme_idx}_{slot_name}_{effect_type}"
+
+
+def _effect_display_name(theme_idx, slot_name, effect_type):
+    return f"_tx_t{theme_idx}_{slot_name}_{effect_type}"
+
+
+def _new_typed_id(cpp_var_name, type_class):
+    return CoreID(cpp_var_name, is_declaration=True, type=type_class)
+
+
+async def _create_effect(effect_cfg, display_name, cpp_var_name):
+    etype = effect_cfg[CONF_EFFECT_TYPE]
+
+    if etype == "scan":
+        return cg.new_Pvariable(
+            _new_typed_id(cpp_var_name, AddressableScanEffect), display_name
+        )
+
+    if etype == "rainbow":
+        v = cg.new_Pvariable(
+            _new_typed_id(cpp_var_name, AddressableRainbowEffect), display_name
+        )
+        cg.add(v.set_speed(effect_cfg[CONF_EFFECT_SPEED]))
+        cg.add(v.set_width(effect_cfg[CONF_EFFECT_WIDTH]))
+        return v
+
+    if etype == "christmas":
+        v = cg.new_Pvariable(
+            _new_typed_id(cpp_var_name, AddressableChristmasEffect), display_name
+        )
+        cg.add(v.set_bit_size(effect_cfg[CONF_EFFECT_BIT_SIZE]))
+        cg.add(v.set_blank_size(effect_cfg[CONF_EFFECT_BLANK_SIZE]))
+        return v
+
+    if etype == "stars":
+        v = cg.new_Pvariable(
+            _new_typed_id(cpp_var_name, AddressableStarsEffect), display_name
+        )
+        cg.add(v.set_stars_probability(effect_cfg[CONF_EFFECT_PROBABILITY]))
+        color = effect_cfg[CONF_EFFECT_COLOR]
+        cg.add(v.set_color(cg.StructInitializer(
+            AddressableColorStarsEffectColor,
+            ("r", int(round(color[0] * 2.55))),
+            ("g", int(round(color[1] * 2.55))),
+            ("b", int(round(color[2] * 2.55))),
+            ("w", 0),
+        )))
+        return v
+
+    return None
+
+
+async def _create_partition(output_id, state_id, leds_var, segments):
+    seg_list = [
+        AddressableSegment(leds_var, from_, count, False)
+        for from_, count in segments
+    ]
+    output_var = cg.new_Pvariable(output_id, PartitionLightOutput, seg_list)
+    await cg.register_component(output_var, {})
+
+    state_var = cg.new_Pvariable(state_id, LightState, output_var)
+    await cg.register_component(state_var, {})
+    cg.add(state_var.set_restore_mode(LightRestoreMode.LIGHT_RESTORE_DEFAULT_OFF))
+    return state_var
+
+
+# ── Code generation ───────────────────────────────────────────────────────────
+
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
 
-    # Button count + reverse
     button_count = config[CONF_BUTTON_COUNT]
     cg.add(var.set_button_count(button_count))
-    reverse = config[CONF_REVERSE]
-    cg.add(var.set_reverse(reverse))
+    is_reversed = config[CONF_REVERSE]
+    cg.add(var.set_reverse(is_reversed))
 
-    # Buttons
     for idx, btn_cfg in enumerate(config[CONF_BUTTONS]):
         relay = None
         if CONF_RELAY in btn_cfg:
             relay = await cg.get_variable(btn_cfg[CONF_RELAY])
         cg.add(var.add_button(btn_cfg[CONF_SWITCH_RELAY], relay))
         if CONF_STATE_SENSOR in btn_cfg:
-            state_s = await cg.get_variable(btn_cfg[CONF_STATE_SENSOR])
-            cg.add(var.set_button_state_sensor(idx, state_s))
+            cg.add(var.set_button_state_sensor(
+                idx, await cg.get_variable(btn_cfg[CONF_STATE_SENSOR])
+            ))
 
-    # LED lights
-    leds = await cg.get_variable(config[CONF_LEDS])
-    cg.add(var.set_leds(leds))
-    leds_top = await cg.get_variable(config[CONF_LEDS_TOP])
-    cg.add(var.set_leds_top(leds_top))
-    leds_nl = await cg.get_variable(config[CONF_LEDS_NIGHTLIGHT])
-    cg.add(var.set_leds_nightlight(leds_nl))
-    # LEDs boutons: IDs fixes du package hardware, inversés si reverse
-    led_ids = _LED_BUTTON_DEFAULT_IDS[:button_count]
-    if reverse:
-        led_ids = list(reversed(led_ids))
-    for idx, led_id in enumerate(led_ids):
-        led = await cg.get_variable(led_id)
-        cg.add(var.set_leds_button(idx, led))
+    leds_var = await cg.get_variable(config[CONF_LEDS])
+    cg.add(var.set_leds(leds_var))
 
-    # Optional peripherals
+    # leds_top: pixels 20-26 (normal) or 0-6 (reversed/180 deg)
+    top_from = 0 if is_reversed else 20
+    leds_top_var = await _create_partition(
+        config[CONF_LEDS_TOP_OUTPUT_ID],
+        config[CONF_LEDS_TOP_STATE_ID],
+        leds_var, [(top_from, 7)],
+    )
+    cg.add(var.set_leds_top(leds_top_var))
+
+    # leds_nightlight: all non-button pixels: 0-6, 8, 10, 12-27
+    leds_nl_var = await _create_partition(
+        config[CONF_LEDS_NL_OUTPUT_ID],
+        config[CONF_LEDS_NL_STATE_ID],
+        leds_var, [(0, 7), (8, 1), (10, 1), (12, 16)],
+    )
+    cg.add(var.set_leds_nightlight(leds_nl_var))
+
+    # button LEDs: normal right=7 middle=9 left=11; reversed right=11 middle=9 left=7
+    btn_pixels = [11, 9, 7] if is_reversed else [7, 9, 11]
+    for i in range(3):
+        btn_var = await _create_partition(
+            config[CONF_LEDS_BTN_OUTPUT_IDS[i]],
+            config[CONF_LEDS_BTN_STATE_IDS[i]],
+            leds_var, [(btn_pixels[i], 1)],
+        )
+        cg.add(var.set_leds_button(i, btn_var))
+
     if CONF_VIBRA in config:
-        vibra = await cg.get_variable(config[CONF_VIBRA])
-        cg.add(var.set_vibra(vibra))
+        cg.add(var.set_vibra(await cg.get_variable(config[CONF_VIBRA])))
     if CONF_MEDIA_PLAYER in config:
-        mp = await cg.get_variable(config[CONF_MEDIA_PLAYER])
-        cg.add(var.set_media_player(mp))
+        cg.add(var.set_media_player(await cg.get_variable(config[CONF_MEDIA_PLAYER])))
     if CONF_API_CONNECTED in config:
-        api_s = await cg.get_variable(config[CONF_API_CONNECTED])
-        cg.add(var.set_api_connected(api_s))
+        cg.add(var.set_api_connected(await cg.get_variable(config[CONF_API_CONNECTED])))
 
-    # Nightlight sensors
     if CONF_NIGHTLIGHT in config:
         nl_cfg = config[CONF_NIGHTLIGHT]
         if CONF_NIGHT_SENSOR in nl_cfg:
-            ns = await cg.get_variable(nl_cfg[CONF_NIGHT_SENSOR])
-            cg.add(var.set_night_sensor(ns))
+            cg.add(var.set_night_sensor(await cg.get_variable(nl_cfg[CONF_NIGHT_SENSOR])))
         if CONF_SLEEP_SENSOR in nl_cfg:
-            ss = await cg.get_variable(nl_cfg[CONF_SLEEP_SENSOR])
-            cg.add(var.set_sleep_sensor(ss))
+            cg.add(var.set_sleep_sensor(await cg.get_variable(nl_cfg[CONF_SLEEP_SENSOR])))
         if CONF_AWAY_SENSOR in nl_cfg:
-            aws = await cg.get_variable(nl_cfg[CONF_AWAY_SENSOR])
-            cg.add(var.set_away_sensor(aws))
+            cg.add(var.set_away_sensor(await cg.get_variable(nl_cfg[CONF_AWAY_SENSOR])))
         cg.add(var.set_room_type(nl_cfg[CONF_ROOM_TYPE]))
 
-    # Timings
     cg.add(var.set_button_on_time_ms(config[CONF_BUTTON_ON_TIME]))
     cg.add(var.set_touch_led_duration_ms(config[CONF_TOUCH_LED_DURATION]))
 
-    # Themes — build list from all merged theme definitions
-    theme_names = []
-    for t_cfg in config[CONF_THEMES]:
-        theme_names.append(t_cfg[CONF_NAME])
-        theme_struct = cg.StructInitializer(
+    # Themes + per-theme effects
+    # nightlight/sleep effects go on leds_nightlight; others on leds_top
+    _NL_SLOTS  = {"nightlight", "sleep"}
+    _TOP_SLOTS = {"touch", "swipe_left", "swipe_right", "long_press", "multi_touch"}
+
+    top_effects = []
+    nl_effects  = []
+
+    for t_idx, t_cfg in enumerate(config[CONF_THEMES]):
+        slot_effect_names = {}
+
+        for slot_name in _NL_SLOTS | _TOP_SLOTS:
+            slot_cfg   = t_cfg.get(slot_name) or {}
+            effect_cfg = slot_cfg.get(CONF_SLOT_EFFECT)
+
+            if effect_cfg is not None and effect_cfg.get(CONF_EFFECT_TYPE) is not None:
+                etype        = effect_cfg[CONF_EFFECT_TYPE]
+                display_name = _effect_display_name(t_idx, slot_name, etype)
+                cpp_name     = _effect_cpp_name(t_idx, slot_name, etype)
+                slot_effect_names[slot_name] = display_name
+
+                ev = await _create_effect(effect_cfg, display_name, cpp_name)
+                if ev is not None:
+                    (nl_effects if slot_name in _NL_SLOTS else top_effects).append(ev)
+            else:
+                slot_effect_names[slot_name] = "None"
+
+        def _s(slot, cfg=t_cfg):
+            return cfg.get(slot) or {}
+
+        cg.add(var.add_theme(cg.StructInitializer(
             Theme,
-            ("name", t_cfg[CONF_NAME]),
-            ("button_color", _make_color3(t_cfg[CONF_BUTTON_COLOR])),
-            ("button_brightness", t_cfg[CONF_BUTTON_BRIGHTNESS]),
-            ("nightlight_color", _make_color3(t_cfg[CONF_NIGHTLIGHT_COLOR])),
-            ("nightlight_brightness", t_cfg[CONF_NIGHTLIGHT_BRIGHTNESS]),
-            ("nightlight_effect", t_cfg[CONF_NIGHTLIGHT_EFFECT]),
-            ("sleep_color", _make_color3(t_cfg[CONF_SLEEP_COLOR])),
-            ("sleep_brightness", t_cfg[CONF_SLEEP_BRIGHTNESS]),
-            ("sleep_effect", t_cfg[CONF_SLEEP_EFFECT]),
-            ("touch_color", _make_color3(t_cfg[CONF_TOUCH_COLOR])),
-            ("touch_brightness", t_cfg[CONF_TOUCH_BRIGHTNESS]),
-            ("touch_effect", t_cfg[CONF_TOUCH_EFFECT]),
-            ("swipe_left_color", _make_color3(t_cfg[CONF_SWIPE_LEFT_COLOR])),
-            ("swipe_left_brightness", t_cfg[CONF_SWIPE_LEFT_BRIGHTNESS]),
-            ("swipe_left_effect", t_cfg[CONF_SWIPE_LEFT_EFFECT]),
-            ("swipe_right_color", _make_color3(t_cfg[CONF_SWIPE_RIGHT_COLOR])),
-            ("swipe_right_brightness", t_cfg[CONF_SWIPE_RIGHT_BRIGHTNESS]),
-            ("swipe_right_effect", t_cfg[CONF_SWIPE_RIGHT_EFFECT]),
-            ("long_press_color", _make_color3(t_cfg[CONF_LONG_PRESS_COLOR])),
-            ("long_press_brightness", t_cfg[CONF_LONG_PRESS_BRIGHTNESS]),
-            ("long_press_effect", t_cfg[CONF_LONG_PRESS_EFFECT]),
-            ("multi_touch_color", _make_color3(t_cfg[CONF_MULTI_TOUCH_COLOR])),
-            ("multi_touch_brightness", t_cfg[CONF_MULTI_TOUCH_BRIGHTNESS]),
-            ("multi_touch_effect", t_cfg[CONF_MULTI_TOUCH_EFFECT]),
-            ("sound_pack", t_cfg[CONF_SOUND_PACK]),
-        )
-        cg.add(var.add_theme(theme_struct))
+            ("name",                   t_cfg[CONF_NAME]),
+            ("button_color",           _make_color3(_s("button")[CONF_SLOT_COLOR])),
+            ("button_brightness",      _s("button")[CONF_SLOT_BRIGHTNESS]),
+            ("nightlight_color",       _make_color3(_s("nightlight")[CONF_SLOT_COLOR])),
+            ("nightlight_brightness",  _s("nightlight")[CONF_SLOT_BRIGHTNESS]),
+            ("nightlight_effect",      slot_effect_names["nightlight"]),
+            ("sleep_color",            _make_color3(_s("sleep")[CONF_SLOT_COLOR])),
+            ("sleep_brightness",       _s("sleep")[CONF_SLOT_BRIGHTNESS]),
+            ("sleep_effect",           slot_effect_names["sleep"]),
+            ("touch_color",            _make_color3(_s("touch")[CONF_SLOT_COLOR])),
+            ("touch_brightness",       _s("touch")[CONF_SLOT_BRIGHTNESS]),
+            ("touch_effect",           slot_effect_names["touch"]),
+            ("swipe_left_color",       _make_color3(_s("swipe_left")[CONF_SLOT_COLOR])),
+            ("swipe_left_brightness",  _s("swipe_left")[CONF_SLOT_BRIGHTNESS]),
+            ("swipe_left_effect",      slot_effect_names["swipe_left"]),
+            ("swipe_right_color",      _make_color3(_s("swipe_right")[CONF_SLOT_COLOR])),
+            ("swipe_right_brightness", _s("swipe_right")[CONF_SLOT_BRIGHTNESS]),
+            ("swipe_right_effect",     slot_effect_names["swipe_right"]),
+            ("long_press_color",       _make_color3(_s("long_press")[CONF_SLOT_COLOR])),
+            ("long_press_brightness",  _s("long_press")[CONF_SLOT_BRIGHTNESS]),
+            ("long_press_effect",      slot_effect_names["long_press"]),
+            ("multi_touch_color",      _make_color3(_s("multi_touch")[CONF_SLOT_COLOR])),
+            ("multi_touch_brightness", _s("multi_touch")[CONF_SLOT_BRIGHTNESS]),
+            ("multi_touch_effect",     slot_effect_names["multi_touch"]),
+            ("sound_pack",             t_cfg[CONF_SOUND_PACK]),
+        )))
+
+    if top_effects:
+        cg.add(leds_top_var.add_effects(top_effects))
+    if nl_effects:
+        cg.add(leds_nl_var.add_effects(nl_effects))
 
     cg.add(var.set_initial_theme(config[CONF_ACTIVE_THEME]))
 
-    # Sound packs
     for sp_cfg in config[CONF_SOUND_PACKS]:
-        # Sound files are referenced by their ESPHome variable ID string.
-        # They must be declared as `files:` entries in the media_player config
-        # with matching IDs. We get the C++ pointer via get_variable.
-        sp_init_args = [("name", sp_cfg[CONF_SOUND_PACK_NAME])]
+        sp_args = [("name", sp_cfg[CONF_SOUND_PACK_NAME])]
         for key, field in [
-            (CONF_SOUND_CLICK, "click"),
-            (CONF_SOUND_LONG_PRESS, "long_press"),
+            (CONF_SOUND_CLICK,       "click"),
+            (CONF_SOUND_LONG_PRESS,  "long_press"),
             (CONF_SOUND_MULTI_PRESS, "multi_press"),
-            (CONF_SOUND_SLIDE, "slide"),
+            (CONF_SOUND_SLIDE,       "slide"),
         ]:
             if key in sp_cfg:
-                sound_var = await cg.get_variable(sp_cfg[key])
-                sp_init_args.append((field, sound_var))
+                sp_args.append((field, await cg.get_variable(sp_cfg[key])))
             else:
-                sp_init_args.append((field, cg.nullptr))
-
-        sp_struct = cg.StructInitializer(SoundPack, *sp_init_args)
-        cg.add(var.add_sound_pack(sp_struct))
-
-    # Build theme select options from registered themes
-    # The select entity is expected to be declared in the device YAML;
-    # we wire it here after all themes are known.
-    # (Select is declared as a template select in packages/tx_ultimate_hw.yaml
-    # and referenced via api id; we set its options dynamically via C++ at runtime.)
+                sp_args.append((field, cg.nullptr))
+        cg.add(var.add_sound_pack(cg.StructInitializer(SoundPack, *sp_args)))
