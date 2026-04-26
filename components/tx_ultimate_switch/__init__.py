@@ -28,7 +28,7 @@ CONF_API_CONNECTED     = "api_connected"
 CONF_WIFI_CONNECTED    = "wifi_connected"
 CONF_BUTTON_ON_TIME    = "button_on_time"
 CONF_TOUCH_LED_DURATION = "touch_led_duration"
-CONF_REVERSE           = "reverse"
+CONF_UPSIDE_DOWN       = "upside_down"
 
 # ── Nightlight config keys ────────────────────────────────────────────────────
 CONF_NIGHT_SENSOR = "sensor"
@@ -315,7 +315,7 @@ CONFIG_SCHEMA = cv.Schema(
             _validate_buttons,
         ),
         cv.Required(CONF_LEDS): cv.use_id(light.LightState),
-        cv.Optional(CONF_REVERSE, default=False): cv.boolean,
+        cv.Optional(CONF_UPSIDE_DOWN, default=False): cv.boolean,
         cv.Optional(CONF_VIBRA): cv.use_id(switch.Switch),
         cv.Optional(CONF_MEDIA_PLAYER): cv.use_id(media_player.MediaPlayer),
         cv.Optional(CONF_NIGHTLIGHT): NIGHTLIGHT_SCHEMA,
@@ -426,8 +426,8 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
 
-    is_reversed = config[CONF_REVERSE]
-    cg.add(var.set_reverse(is_reversed))
+    is_reversed = config[CONF_UPSIDE_DOWN]
+    cg.add(var.set_upside_down(is_reversed))
 
     for idx, btn_cfg in enumerate(config[CONF_BUTTONS]):
         relay_var = None

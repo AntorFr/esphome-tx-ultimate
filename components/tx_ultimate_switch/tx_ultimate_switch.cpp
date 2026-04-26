@@ -251,7 +251,7 @@ void TxUltimateSwitch::on_touch_release(int pos) {
   if (buttons_.empty()) return;
 
   // Route to a button by computing the target position from touch x.
-  if (reverse_) pos = 10 - pos;
+  if (upside_down_) pos = 10 - pos;
 
   ButtonPosition target_pos;
   size_t n = buttons_.size();

@@ -131,7 +131,7 @@ tx_ultimate_switch:
       sensor:
         name: "Touchfield Droit"
 
-  reverse: true   # appareil monté à l'envers (haut→bas)
+  upside_down: true   # appareil monté à l'envers (haut→bas)
 
   leds: leds
 

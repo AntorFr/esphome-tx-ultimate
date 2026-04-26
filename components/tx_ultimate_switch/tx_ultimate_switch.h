@@ -38,7 +38,7 @@ enum class RoomType : uint8_t {
   DARK     = 2,  ///< No windows: nightlight always ON; sleep/away still respected
 };
 
-// ── Button position (user-facing label, mirrored if reverse_) ────────────────
+// ── Button position (user-facing label, mirrored if upside_down_) ───────────
 enum class ButtonPosition : uint8_t {
   LEFT   = 0,
   CENTER = 1,
@@ -123,7 +123,7 @@ struct ButtonConfig {
 class TxUltimateSwitch : public Component {
  public:
   // ── Wiring setters (called by Python codegen) ───────────────────────────────
-  void set_reverse(bool r) { reverse_ = r; }
+  void set_upside_down(bool r) { upside_down_ = r; }
 
   void add_button(ButtonPosition position, SwitchRelayMode mode, light::LightState *relay) {
     ButtonConfig b;
@@ -220,7 +220,7 @@ class TxUltimateSwitch : public Component {
   const SoundPack *active_sound_pack_() const;
   void play_sound_(audio::AudioFile *file);
 
-  bool reverse_{false};
+  bool upside_down_{false};
   std::vector<ButtonConfig> buttons_;
 
   light::LightState *leds_{nullptr};

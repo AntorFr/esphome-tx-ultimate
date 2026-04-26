@@ -108,7 +108,7 @@ See [example/my_switch_3btn.yaml](example/my_switch_3btn.yaml) for a 3-button de
 |-----|------|----------|---------|-------------|
 | `buttons` | list (1-3) | yes | — | Per-button config (see below) |
 | `leds` | light id | yes | — | Full LED strip (28 LEDs) — usually `leds` from the hw package |
-| `reverse` | bool | no | `false` | Set to `true` if the panel is mounted upside-down (mirrors touch x and button-LED positions) |
+| `upside_down` | bool | no | `false` | Set to `true` if the panel is mounted upside-down (mirrors touch x and button-LED positions) |
 | `vibra` | switch id | no | — | Vibration motor — usually `vibra` from the hw package |
 | `media_player` | media_player id | no | — | I2S speaker media player (required for sounds) |
 | `api_connected` | binary_sensor id | no | — | API status sensor — drives `switch_relay: fallback_ha` |
@@ -152,7 +152,7 @@ Buttons are routed by their declared `position`, regardless of declaration order
 | 2 | Surface split 50/50, ordered by position (`left < center < right`) |
 | 3 | Strict thirds (`left` / `center` / `right`) |
 
-When `reverse: true`, the touch x-axis is mirrored so `position` stays user-facing.
+When `upside_down: true`, the touch x-axis is mirrored so `position` stays user-facing.
 
 #### `switch_relay` modes
 
@@ -386,10 +386,10 @@ The hw package (`packages/tx_ultimate_hw.yaml`) declares everything board-specif
 
 ```
 Pixels 0–6, 8, 10, 12–27 → leds_nightlight (bottom + side)
-Pixels 20–26 (or 0–6 if reverse) → leds_top (touch / swipe / multi-touch feedback)
-Pixel 7  → leds_button_left   (or right if reverse)
+Pixels 20–26 (or 0–6 if upside_down) → leds_top (touch / swipe / multi-touch feedback)
+Pixel 7  → leds_button_left   (or right if upside_down)
 Pixel 9  → leds_button_center
-Pixel 11 → leds_button_right  (or left if reverse)
+Pixel 11 → leds_button_right  (or left if upside_down)
 ```
 
 ---
