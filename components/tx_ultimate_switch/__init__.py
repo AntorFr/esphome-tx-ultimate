@@ -405,35 +405,76 @@ async def to_code(config):
     leds_var = await cg.get_variable(config[CONF_LEDS])
     cg.add(var.set_leds(leds_var))
 
-    # leds_top: pixels 20-26 (normal) or 0-6 (reversed/180 deg)
-    top_from = 0 if is_reversed else 20
+    # ── Strip layout (head-up convention) ────────────────────────────────────
+    # 28-pixel loop around the device:
+    #   0-6   = right side (top to bottom)
+    #   6-12  = bottom row (right to left, with btn LEDs at 7=right, 9=center,
+    #           11=left)
+    #   13-19 = left side (bottom to top)
+    #   20-26 = top row (left to right) — touch feedback zone
+    #   27    = top-right corner
+    #
+    # upside_down = device rotated 180°: each pixel maps to (p+14) mod 28.
+    HEADUP_TOP_PIXELS = list(range(20, 27))
+
+    def _shift14(pixels):
+        return [(p + 14) % 28 for p in pixels] if is_reversed else list(pixels)
+
+    def _to_segments(pixels):
+        if not pixels:
+            return []
+        px = sorted(set(pixels))
+        segs, start, prev = [], px[0], px[0]
+        for p in px[1:]:
+            if p == prev + 1:
+                prev = p
+            else:
+                segs.append((start, prev - start + 1))
+                start = prev = p
+        segs.append((start, prev - start + 1))
+        return segs
+
+    # ── Per-button indicator pixels (head-up coords) ─────────────────────────
+    n_buttons = len(config[CONF_BUTTONS])
+    btn_pixels_headup = []  # parallel to config[CONF_BUTTONS]: list of pixel lists
+    if n_buttons == 1:
+        # Single button: wide indicator across the bottom-center (3 pixels).
+        btn_pixels_headup.append([8, 9, 10])
+    else:
+        # 2 or 3 buttons: each button gets its position-anchored pixel.
+        # Position MockObjs are unhashable; their str() yields the enum key
+        # ("left"/"center"/"right"), so we key by that.
+        per_pos = {"left": 11, "center": 9, "right": 7}
+        for btn_cfg in config[CONF_BUTTONS]:
+            btn_pixels_headup.append([per_pos[str(btn_cfg[CONF_POSITION])]])
+
+    all_btn_headup = {p for px in btn_pixels_headup for p in px}
+
+    # ── leds_top ─────────────────────────────────────────────────────────────
     leds_top_var = await _create_partition(
         config[CONF_LEDS_TOP_OUTPUT_ID],
         config[CONF_LEDS_TOP_STATE_ID],
-        leds_var, [(top_from, 7)],
+        leds_var, _to_segments(_shift14(HEADUP_TOP_PIXELS)),
     )
     cg.add(var.set_leds_top(leds_top_var))
 
-    # leds_nightlight: all non-button pixels: 0-6, 8, 10, 12-27
+    # ── leds_nightlight = all pixels minus top minus button indicators ───────
+    nl_pixels_headup = set(range(28)) - set(HEADUP_TOP_PIXELS) - all_btn_headup
     leds_nl_var = await _create_partition(
         config[CONF_LEDS_NL_OUTPUT_ID],
         config[CONF_LEDS_NL_STATE_ID],
-        leds_var, [(0, 7), (8, 1), (10, 1), (12, 16)],
+        leds_var, _to_segments(_shift14(nl_pixels_headup)),
     )
     cg.add(var.set_leds_nightlight(leds_nl_var))
 
-    # button LEDs: normal right=7 middle=9 left=11; reversed right=11 middle=9 left=7
-    # ButtonPosition value index (LEFT=0, CENTER=1, RIGHT=2) → strip pixel.
-    # Per the legacy YAML naming (leds_button_left=11, leds_button_right=7),
-    # head-up: user-LEFT=pixel 11, user-RIGHT=pixel 7. Upside-down rotates 180°.
-    btn_pixels = [7, 9, 11] if is_reversed else [11, 9, 7]
-    for i in range(3):
-        btn_var = await _create_partition(
+    # ── Per-button partitions ────────────────────────────────────────────────
+    for i, btn_cfg in enumerate(config[CONF_BUTTONS]):
+        btn_part = await _create_partition(
             config[CONF_LEDS_BTN_OUTPUT_IDS[i]],
             config[CONF_LEDS_BTN_STATE_IDS[i]],
-            leds_var, [(btn_pixels[i], 1)],
+            leds_var, _to_segments(_shift14(btn_pixels_headup[i])),
         )
-        cg.add(var.set_leds_button(i, btn_var))
+        cg.add(var.set_leds_button(btn_cfg[CONF_POSITION], btn_part))
 
     if CONF_VIBRA in config:
         cg.add(var.set_vibra(await cg.get_variable(config[CONF_VIBRA])))

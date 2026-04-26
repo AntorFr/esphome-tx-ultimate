@@ -144,7 +144,8 @@ class TxUltimateSwitch : public Component {
   void set_leds(light::LightState *leds) { leds_ = leds; }
   void set_leds_top(light::LightState *l) { leds_top_ = l; }
   void set_leds_nightlight(light::LightState *l) { leds_nightlight_ = l; }
-  void set_leds_button(uint8_t idx, light::LightState *l) {
+  void set_leds_button(ButtonPosition pos, light::LightState *l) {
+    uint8_t idx = static_cast<uint8_t>(pos);
     if (idx < 3) leds_button_[idx] = l;
   }
 
