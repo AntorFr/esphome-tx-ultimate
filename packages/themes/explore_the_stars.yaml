@@ -11,9 +11,12 @@ tx_ultimate_switch:
         color: [20, 0, 80]
         brightness: 0.15
         effect:
-          type: stars
-          probability: 10%
-          color: [100, 100, 100]
+          addressable_stars:
+            stars_probability: 10%
+            color:
+              red: 100%
+              green: 100%
+              blue: 100%
       sleep:
         color: [60, 0, 0]  # rouge doux — repère de nuit sans gêner le sommeil
         brightness: 0.08
@@ -21,7 +24,9 @@ tx_ultimate_switch:
         color: [0, 50, 100]
         brightness: 1.0
         effect:
-          type: scan
+          addressable_scan:
+            move_interval: 100ms
+            scan_width: 1
       swipe_left:
         color: [0, 80, 100]
         brightness: 1.0
@@ -35,7 +40,7 @@ tx_ultimate_switch:
         color: [0, 0, 0]
         brightness: 1.0
         effect:
-          type: rainbow
-          speed: 10
-          width: 20
+          addressable_rainbow:
+            speed: 10
+            width: 20
       sound: explore_the_stars

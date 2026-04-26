@@ -253,7 +253,9 @@ tx_ultimate_switch:
         color: [0, 100, 100]
         brightness: 1.0
         effect:
-          type: scan
+          addressable_scan:
+            move_interval: 100ms
+            scan_width: 1
       swipe_left:
         color: [0, 100, 0]
         brightness: 1.0
@@ -267,7 +269,9 @@ tx_ultimate_switch:
         color: [0, 0, 0]
         brightness: 1.0
         effect:
-          type: rainbow
+          addressable_rainbow:
+            speed: 10
+            width: 20
       sound: explore_the_stars
     - name: "Christmas"
       button:
@@ -277,14 +281,16 @@ tx_ultimate_switch:
         color: [0, 60, 0]
         brightness: 0.3
         effect:
-          type: christmas
-          blank_size: 1
-          bit_size: 1
+          addressable_christmas:
+            blank_size: 1
+            bit_size: 1
       touch:
         color: [100, 50, 0]
         brightness: 1.0
         effect:
-          type: scan
+          addressable_scan:
+            move_interval: 100ms
+            scan_width: 1
       swipe_left:
         color: [0, 80, 0]
         brightness: 1.0
@@ -298,7 +304,9 @@ tx_ultimate_switch:
         color: [0, 0, 0]
         brightness: 1.0
         effect:
-          type: rainbow
+          addressable_rainbow:
+            speed: 10
+            width: 20
       sound: christmas
   active_theme: "Default"
   sound_packs:

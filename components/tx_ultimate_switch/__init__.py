@@ -3,9 +3,11 @@ import esphome.config_validation as cv
 import esphome.final_validate as fv
 from esphome.components import light, binary_sensor, switch, select, media_player, audio
 from esphome.components.binary import light as binary_light
+from esphome.components.light.effects import EFFECTS_REGISTRY
 from esphome.const import CONF_ID, CONF_NAME, CONF_PLATFORM
 from esphome import automation
-from esphome.core import CORE, ID as CoreID
+from esphome.core import CORE
+from esphome.cpp_helpers import build_registry_entry
 
 CODEOWNERS = ["@AntorFr"]
 DEPENDENCIES = ["light", "binary_sensor"]
@@ -42,15 +44,6 @@ CONF_SWITCH_RELAY = "switch_relay"
 CONF_RELAY        = "relay"
 CONF_STATE_SENSOR = "state_sensor"
 CONF_SENSOR       = "sensor"
-
-# ── Effect config keys ────────────────────────────────────────────────────────
-CONF_EFFECT_TYPE        = "type"
-CONF_EFFECT_SPEED       = "speed"
-CONF_EFFECT_WIDTH       = "width"
-CONF_EFFECT_BLANK_SIZE  = "blank_size"
-CONF_EFFECT_BIT_SIZE    = "bit_size"
-CONF_EFFECT_PROBABILITY = "probability"
-CONF_EFFECT_COLOR       = "color"
 
 # ── Theme slot config keys ────────────────────────────────────────────────────
 CONF_SLOT_COLOR      = "color"
@@ -101,12 +94,6 @@ light_ns = cg.esphome_ns.namespace("light")
 LightState       = light_ns.class_("LightState", cg.EntityBase, cg.Component)
 LightRestoreMode = light_ns.enum("LightRestoreMode")
 
-AddressableScanEffect            = light_ns.class_("AddressableScanEffect")
-AddressableRainbowEffect         = light_ns.class_("AddressableRainbowLightEffect")
-AddressableChristmasEffect       = light_ns.class_("AddressableChristmasEffect")
-AddressableStarsEffect           = light_ns.class_("AddressableStarsEffect")
-AddressableColorStarsEffectColor = light_ns.struct("AddressableColorStarsEffectColor")
-
 ROOM_TYPE_OPTIONS = {
     "standard": RoomType.STANDARD,
     "bedroom":  RoomType.BEDROOM,
@@ -142,19 +129,11 @@ def validate_color(value):
 COLOR_SCHEMA = validate_color
 
 # ── Effect schema ─────────────────────────────────────────────────────────────
-EFFECT_SCHEMA = cv.Schema(
-    {
-        cv.Required(CONF_EFFECT_TYPE): cv.one_of(
-            "scan", "rainbow", "christmas", "stars", lower=True
-        ),
-        cv.Optional(CONF_EFFECT_SPEED,       default=10):  cv.int_range(min=1, max=255),
-        cv.Optional(CONF_EFFECT_WIDTH,       default=20):  cv.int_range(min=1, max=255),
-        cv.Optional(CONF_EFFECT_BLANK_SIZE,  default=1):   cv.int_range(min=0, max=255),
-        cv.Optional(CONF_EFFECT_BIT_SIZE,    default=1):   cv.int_range(min=1, max=255),
-        cv.Optional(CONF_EFFECT_PROBABILITY, default=0.3): cv.percentage,
-        cv.Optional(CONF_EFFECT_COLOR, default=[100, 100, 100]): COLOR_SCHEMA,
-    }
-)
+# Defer to ESPHome's own effect registry: accepts the standard light effect
+# syntax `{ addressable_scan: { name: ..., move_interval: ..., ... } }` with
+# all native parameters and any custom effect registered (e.g. by
+# custom_addressable_effects).
+EFFECT_SCHEMA = cv.validate_registry_entry("effect", EFFECTS_REGISTRY)
 
 
 def _slot_schema(default_color, default_brightness, allow_effect=True):
@@ -352,58 +331,25 @@ def _make_color3(color_list):
     )
 
 
-def _effect_cpp_name(theme_idx, slot_name, effect_type):
-    return f"tx_t{theme_idx}_{slot_name}_{effect_type}"
+def _effect_unique_name(theme_idx, slot_name):
+    """Per-(theme, slot) unique name. Forced into the registered effect's
+    name field so collisions on the same partition are avoided when several
+    themes share the same effect type."""
+    return f"_tx_t{theme_idx}_{slot_name}"
 
 
-def _effect_display_name(theme_idx, slot_name, effect_type):
-    return f"_tx_t{theme_idx}_{slot_name}_{effect_type}"
-
-
-def _new_typed_id(cpp_var_name, type_class):
-    return CoreID(cpp_var_name, is_declaration=True, type=type_class)
-
-
-async def _create_effect(effect_cfg, display_name, cpp_var_name):
-    etype = effect_cfg[CONF_EFFECT_TYPE]
-
-    if etype == "scan":
-        return cg.new_Pvariable(
-            _new_typed_id(cpp_var_name, AddressableScanEffect), display_name
-        )
-
-    if etype == "rainbow":
-        v = cg.new_Pvariable(
-            _new_typed_id(cpp_var_name, AddressableRainbowEffect), display_name
-        )
-        cg.add(v.set_speed(effect_cfg[CONF_EFFECT_SPEED]))
-        cg.add(v.set_width(effect_cfg[CONF_EFFECT_WIDTH]))
-        return v
-
-    if etype == "christmas":
-        v = cg.new_Pvariable(
-            _new_typed_id(cpp_var_name, AddressableChristmasEffect), display_name
-        )
-        cg.add(v.set_bit_size(effect_cfg[CONF_EFFECT_BIT_SIZE]))
-        cg.add(v.set_blank_size(effect_cfg[CONF_EFFECT_BLANK_SIZE]))
-        return v
-
-    if etype == "stars":
-        v = cg.new_Pvariable(
-            _new_typed_id(cpp_var_name, AddressableStarsEffect), display_name
-        )
-        cg.add(v.set_stars_probability(effect_cfg[CONF_EFFECT_PROBABILITY]))
-        color = effect_cfg[CONF_EFFECT_COLOR]
-        cg.add(v.set_color(cg.StructInitializer(
-            AddressableColorStarsEffectColor,
-            ("r", int(round(color[0] * 2.55))),
-            ("g", int(round(color[1] * 2.55))),
-            ("b", int(round(color[2] * 2.55))),
-            ("w", 0),
-        )))
-        return v
-
-    return None
+async def _create_effect(effect_cfg, unique_name):
+    """Build a light effect via ESPHome's standard effect registry.
+    Overrides the user-supplied (or registry-default) `name:` with our unique
+    name so set_effect("...") in C++ can address it deterministically."""
+    cfg = dict(effect_cfg)
+    # The validated config has shape {effect_key: {name: ..., ...}, type_id: ...}.
+    # The effect_key is the only entry whose value is a dict of params.
+    effect_key = next(k for k, v in cfg.items() if isinstance(v, dict))
+    inner = dict(cfg[effect_key])
+    inner[CONF_NAME] = unique_name
+    cfg[effect_key] = inner
+    return await build_registry_entry(EFFECTS_REGISTRY, cfg)
 
 
 async def _create_partition(output_id, state_id, leds_var, segments):
@@ -523,13 +469,11 @@ async def to_code(config):
             slot_cfg   = t_cfg.get(slot_name) or {}
             effect_cfg = slot_cfg.get(CONF_SLOT_EFFECT)
 
-            if effect_cfg is not None and effect_cfg.get(CONF_EFFECT_TYPE) is not None:
-                etype        = effect_cfg[CONF_EFFECT_TYPE]
-                display_name = _effect_display_name(t_idx, slot_name, etype)
-                cpp_name     = _effect_cpp_name(t_idx, slot_name, etype)
-                slot_effect_names[slot_name] = display_name
+            if effect_cfg is not None:
+                unique_name = _effect_unique_name(t_idx, slot_name)
+                slot_effect_names[slot_name] = unique_name
 
-                ev = await _create_effect(effect_cfg, display_name, cpp_name)
+                ev = await _create_effect(effect_cfg, unique_name)
                 if ev is not None:
                     (nl_effects if slot_name in _NL_SLOTS else top_effects).append(ev)
             else:

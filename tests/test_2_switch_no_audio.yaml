@@ -146,7 +146,9 @@ tx_ultimate_switch:
         color: [0, 100, 100]
         brightness: 1.0
         effect:
-          type: scan
+          addressable_scan:
+            move_interval: 100ms
+            scan_width: 1
       swipe_left:
         color: [0, 100, 0]
         brightness: 1.0
@@ -160,7 +162,9 @@ tx_ultimate_switch:
         color: [0, 0, 0]
         brightness: 1.0
         effect:
-          type: rainbow
+          addressable_rainbow:
+            speed: 10
+            width: 20
   active_theme: "Default"
   button_on_time: 500ms
   touch_led_duration: 6s

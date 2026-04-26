@@ -1,6 +1,13 @@
 # packages/themes/default.yaml
 # Thèmes chargés par défaut sur tous les devices TX Ultimate.
 # Ajouter ici tout nouveau thème à déployer globalement.
+#
+# Effets: utilise la syntaxe ESPHome standard (registry des light effects),
+# avec tous les paramètres natifs disponibles.
+#   effect:
+#     addressable_scan:
+#       move_interval: 100ms
+#       scan_width: 1
 
 tx_ultimate_switch:
   themes:
@@ -18,9 +25,9 @@ tx_ultimate_switch:
         color: [0, 100, 100]
         brightness: 1.0
         effect:
-          type: scan
-          move_interval: 100ms
-          scan_width: 1
+          addressable_scan:
+            move_interval: 100ms
+            scan_width: 1
       swipe_left:
         color: [0, 100, 0]
         brightness: 1.0
@@ -34,9 +41,9 @@ tx_ultimate_switch:
         color: [0, 0, 0]
         brightness: 1.0
         effect:
-          type: rainbow
-          speed: 10
-          width: 20
+          addressable_rainbow:
+            speed: 10
+            width: 20
       sound: explore_the_stars
 
     - name: "Explore the Stars"
@@ -47,19 +54,22 @@ tx_ultimate_switch:
         color: [20, 0, 80]
         brightness: 0.15
         effect:
-          type: stars
-          probability: 10%
-          color: [100, 100, 100]
+          addressable_stars:
+            stars_probability: 10%
+            color:
+              red: 100%
+              green: 100%
+              blue: 100%
       sleep:
-        color: [60, 0, 0]  # rouge doux — repère de nuit sans gêner le sommeil
+        color: [60, 0, 0]
         brightness: 0.08
       touch:
         color: [0, 50, 100]
         brightness: 1.0
         effect:
-          type: scan
-          move_interval: 100ms
-          scan_width: 1
+          addressable_scan:
+            move_interval: 100ms
+            scan_width: 1
       swipe_left:
         color: [0, 80, 100]
         brightness: 1.0
@@ -73,9 +83,9 @@ tx_ultimate_switch:
         color: [0, 0, 0]
         brightness: 1.0
         effect:
-          type: rainbow
-          speed: 10
-          width: 20
+          addressable_rainbow:
+            speed: 10
+            width: 20
       sound: explore_the_stars
 
     - name: "Christmas"
@@ -86,19 +96,19 @@ tx_ultimate_switch:
         color: [0, 60, 0]
         brightness: 0.3
         effect:
-          type: christmas
-          blank_size: 1
-          bit_size: 1
+          addressable_christmas:
+            blank_size: 1
+            bit_size: 1
       sleep:
-        color: [60, 0, 0]  # rouge doux — repère de nuit sans gêner le sommeil
+        color: [60, 0, 0]
         brightness: 0.08
       touch:
         color: [100, 50, 0]
         brightness: 1.0
         effect:
-          type: scan
-          move_interval: 100ms
-          scan_width: 1
+          addressable_scan:
+            move_interval: 100ms
+            scan_width: 1
       swipe_left:
         color: [0, 80, 0]
         brightness: 1.0
@@ -112,7 +122,7 @@ tx_ultimate_switch:
         color: [0, 0, 0]
         brightness: 1.0
         effect:
-          type: rainbow
-          speed: 10
-          width: 20
+          addressable_rainbow:
+            speed: 10
+            width: 20
       sound: explore_the_stars
