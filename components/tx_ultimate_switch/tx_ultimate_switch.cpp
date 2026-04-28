@@ -1,13 +1,13 @@
 #include "tx_ultimate_switch.h"
 #include "esphome/core/log.h"
 #include "esphome/core/application.h"
-#ifdef USE_AUDIO
 #include "esphome/components/audio/audio.h"
+#ifdef USE_MEDIA_PLAYER
 #include "esphome/components/media_player/media_player.h"
-#ifdef USE_ESP32
+#endif
+#if defined(USE_SPEAKER) && defined(USE_ESP32)
 #include "esphome/components/speaker/media_player/speaker_media_player.h"
 #endif
-#endif  // USE_AUDIO
 
 namespace esphome {
 namespace tx_ultimate_switch {
@@ -459,7 +459,6 @@ const SoundPack *TxUltimateSwitch::active_sound_pack_() const {
   return &sound_packs_[0];
 }
 
-#ifdef USE_AUDIO
 void TxUltimateSwitch::play_sound_(audio::AudioFile *file) {
   if (file == nullptr) {
     ESP_LOGW(TAG, "play_sound: file is null (sound pack not wired?)");
@@ -474,7 +473,7 @@ void TxUltimateSwitch::play_sound_(audio::AudioFile *file) {
     return;
   }
 
-#ifdef USE_ESP32
+#if defined(USE_SPEAKER) && defined(USE_ESP32)
   auto *mp = static_cast<speaker::SpeakerMediaPlayer *>(media_player_);
   ESP_LOGD(TAG, "play_sound: state=%d, calling stop+play_file",
            static_cast<int>(media_player_->state));
@@ -484,12 +483,9 @@ void TxUltimateSwitch::play_sound_(audio::AudioFile *file) {
     .perform();
   mp->play_file(file, true, false);
 #else
-  ESP_LOGW(TAG, "play_sound: USE_ESP32 not defined");
+  ESP_LOGW(TAG, "play_sound: speaker media_player support not compiled (USE_SPEAKER/USE_ESP32)");
 #endif
 }
-#else
-void TxUltimateSwitch::play_sound_(audio::AudioFile *file) {}
-#endif  // USE_AUDIO
 
 }  // namespace tx_ultimate_switch
 }  // namespace esphome
