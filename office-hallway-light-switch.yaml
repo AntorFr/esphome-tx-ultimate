@@ -78,31 +78,6 @@ binary_sensor:
     entity_id: ${ha_away_sensor}
     trigger_on_initial_state: true
 
-media_player:
-  - platform: speaker
-    name: "Media Player"
-    id: mp
-    announcement_pipeline:
-      speaker: announcement_resampling_speaker
-      format: FLAC
-      num_channels: 1
-    media_pipeline:
-      speaker: media_resampling_speaker
-      format: FLAC
-      num_channels: 1
-    volume_increment: 0.05
-    volume_min: 0.4
-    volume_max: 1.0
-    files:
-      - id: sound_click
-        file: https://raw.githubusercontent.com/AntorFr/esphome-projects/refs/heads/master/sounds/tx_ultimate/explore_the_stars/clic.flac
-      - id: sound_long_press
-        file: https://raw.githubusercontent.com/AntorFr/esphome-projects/refs/heads/master/sounds/tx_ultimate/explore_the_stars/long_press.flac
-      - id: sound_multi_press
-        file: https://raw.githubusercontent.com/AntorFr/esphome-projects/refs/heads/master/sounds/tx_ultimate/explore_the_stars/multi_press.flac
-      - id: sound_slide
-        file: https://raw.githubusercontent.com/AntorFr/esphome-projects/refs/heads/master/sounds/tx_ultimate/explore_the_stars/slide.flac
-
 tx_ultimate_switch:
   id: tx
 
@@ -120,7 +95,6 @@ tx_ultimate_switch:
   leds: leds
 
   vibra: vibra
-  media_player: mp
   api_connected: api_connected
   wifi_connected: wifi_connected
 
@@ -128,10 +102,3 @@ tx_ultimate_switch:
     away_sensor: away_sensor
 
   active_theme: "Explore the Stars"
-
-  sound_packs:
-    - name: explore_the_stars
-      click: sound_click
-      long_press: sound_long_press
-      multi_press: sound_multi_press
-      slide: sound_slide

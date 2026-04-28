@@ -210,6 +210,61 @@ speaker:
     sample_rate: 48000
     bits_per_sample: 16
 
+# ── Media player (announces touch sounds) ────────────────────────────────────
+# `task_stack_in_psram` + `buffer_size` are required for FLAC decoding stability;
+# without them the decoder task can crash silently and no sound is heard.
+# Files can be extended by theme packages via `id: !extend mp`.
+media_player:
+  - platform: speaker
+    id: mp
+    name: "Media Player"
+    task_stack_in_psram: true
+    buffer_size: 80000
+    volume_increment: 0.05
+    volume_min: 0.4
+    volume_max: 1.0
+    announcement_pipeline:
+      speaker: announcement_resampling_speaker
+      format: FLAC
+      num_channels: 1
+    media_pipeline:
+      speaker: media_resampling_speaker
+      format: FLAC
+      num_channels: 1
+    files:
+      - id: sound_click_explore
+        file: https://raw.githubusercontent.com/AntorFr/esphome-projects/refs/heads/master/sounds/tx_ultimate/explore_the_stars/clic.flac
+      - id: sound_long_press_explore
+        file: https://raw.githubusercontent.com/AntorFr/esphome-projects/refs/heads/master/sounds/tx_ultimate/explore_the_stars/long_press.flac
+      - id: sound_multi_press_explore
+        file: https://raw.githubusercontent.com/AntorFr/esphome-projects/refs/heads/master/sounds/tx_ultimate/explore_the_stars/multi_press.flac
+      - id: sound_slide_explore
+        file: https://raw.githubusercontent.com/AntorFr/esphome-projects/refs/heads/master/sounds/tx_ultimate/explore_the_stars/slide.flac
+      - id: sound_click_christmas
+        file: https://raw.githubusercontent.com/AntorFr/esphome-projects/refs/heads/master/sounds/tx_ultimate/christmas/clic.flac
+      - id: sound_long_press_christmas
+        file: https://raw.githubusercontent.com/AntorFr/esphome-projects/refs/heads/master/sounds/tx_ultimate/christmas/long_press.flac
+      - id: sound_multi_press_christmas
+        file: https://raw.githubusercontent.com/AntorFr/esphome-projects/refs/heads/master/sounds/tx_ultimate/christmas/multi_press.flac
+      - id: sound_slide_christmas
+        file: https://raw.githubusercontent.com/AntorFr/esphome-projects/refs/heads/master/sounds/tx_ultimate/christmas/slide.flac
+
+# ── tx_ultimate_switch wiring (audio + sound packs) ──────────────────────────
+tx_ultimate_switch:
+  id: tx
+  media_player: mp
+  sound_packs:
+    - name: explore_the_stars
+      click:       sound_click_explore
+      long_press:  sound_long_press_explore
+      multi_press: sound_multi_press_explore
+      slide:       sound_slide_explore
+    - name: christmas
+      click:       sound_click_christmas
+      long_press:  sound_long_press_christmas
+      multi_press: sound_multi_press_christmas
+      slide:       sound_slide_christmas
+
 # ── Connectivity binary sensors ──────────────────────────────────────────────
 binary_sensor:
   - platform: status
