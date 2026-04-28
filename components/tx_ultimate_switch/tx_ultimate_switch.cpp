@@ -55,6 +55,9 @@ void TxUltimateSwitch::setup() {
 void TxUltimateSwitch::dump_config() {  ESP_LOGCONFIG(TAG, "TX Ultimate Switch:");
   ESP_LOGCONFIG(TAG, "  Buttons: %d", buttons_.size());
   ESP_LOGCONFIG(TAG, "  Themes: %d", themes_.size());
+  ESP_LOGCONFIG(TAG, "  Sound packs: %d", sound_packs_.size());
+  ESP_LOGCONFIG(TAG, "  Initial theme: %s", initial_theme_.c_str());
+  ESP_LOGCONFIG(TAG, "  Media player:  %s", media_player_ != nullptr ? "configured" : "NOT configured");
   ESP_LOGCONFIG(TAG, "  Night sensor: %s", night_sensor_ != nullptr ? "configured" : "not configured");
   ESP_LOGCONFIG(TAG, "  Sleep sensor: %s", sleep_sensor_ != nullptr ? "configured" : "not configured");
   ESP_LOGCONFIG(TAG, "  Away sensor:  %s", away_sensor_  != nullptr ? "configured" : "not configured");
@@ -266,7 +269,12 @@ void TxUltimateSwitch::on_touch_release(int pos) {
 
   // Sound
   const SoundPack *sp = active_sound_pack_();
-  if (sp != nullptr) play_sound_(sp->click);
+  if (sp != nullptr) {
+    play_sound_(sp->click);
+  } else {
+    ESP_LOGW(TAG, "on_touch_release: active_sound_pack is null (themes=%d, packs=%d)",
+             themes_.size(), sound_packs_.size());
+  }
 
   if (buttons_.empty()) return;
 
