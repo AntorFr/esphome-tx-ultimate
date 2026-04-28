@@ -453,22 +453,30 @@ const SoundPack *TxUltimateSwitch::active_sound_pack_() const {
 
 #ifdef USE_AUDIO
 void TxUltimateSwitch::play_sound_(audio::AudioFile *file) {
-  if (file == nullptr || media_player_ == nullptr) return;
-
-  // Don't play during sleep (avoid waking people)
-  if (sleep_sensor_ != nullptr && sleep_sensor_->state) return;
+  if (file == nullptr) {
+    ESP_LOGW(TAG, "play_sound: file is null (sound pack not wired?)");
+    return;
+  }
+  if (media_player_ == nullptr) {
+    ESP_LOGW(TAG, "play_sound: media_player not configured");
+    return;
+  }
+  if (sleep_sensor_ != nullptr && sleep_sensor_->state) {
+    ESP_LOGD(TAG, "play_sound: muted (sleep_sensor ON)");
+    return;
+  }
 
 #ifdef USE_ESP32
   auto *mp = static_cast<speaker::SpeakerMediaPlayer *>(media_player_);
-  // Stop any ongoing announcement, then always play (priority semantics from
-  // the legacy play_sound script). The state check that was here previously
-  // caused sounds to be skipped: state transitions are asynchronous, so right
-  // after our STOP the player is still reported as ANNOUNCING.
+  ESP_LOGD(TAG, "play_sound: state=%d, calling stop+play_file",
+           static_cast<int>(media_player_->state));
   mp->make_call()
     .set_command(media_player::MediaPlayerCommand::MEDIA_PLAYER_COMMAND_STOP)
     .set_announcement(true)
     .perform();
   mp->play_file(file, true, false);
+#else
+  ESP_LOGW(TAG, "play_sound: USE_ESP32 not defined");
 #endif
 }
 #else
