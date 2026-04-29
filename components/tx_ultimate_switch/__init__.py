@@ -458,8 +458,10 @@ async def to_code(config):
     )
     cg.add(var.set_leds_top(leds_top_var))
 
-    # ── leds_nightlight = all pixels minus top minus button indicators ───────
-    nl_pixels_headup = set(range(28)) - set(HEADUP_TOP_PIXELS) - all_btn_headup
+    # ── leds_nightlight = all pixels minus button indicators ─────────────────
+    # Keep top LEDs inside nightlight so they display ambience when no touch
+    # animation is active.
+    nl_pixels_headup = set(range(28)) - all_btn_headup
     leds_nl_var = await _create_partition(
         config[CONF_LEDS_NL_OUTPUT_ID],
         config[CONF_LEDS_NL_STATE_ID],
