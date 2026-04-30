@@ -117,6 +117,7 @@ See [example/my_switch_3btn.yaml](example/my_switch_3btn.yaml) for a 3-button de
 | `themes` | list | no | `[]` | Theme definitions |
 | `sound_packs` | list | no | `[]` | Sound packs referenced by themes |
 | `active_theme` | string | no | `"Default"` | Initial theme name |
+| `theme_select` | block | no | — | Exposes a HA select to change the active theme at runtime (requires at least one theme) |
 | `button_on_time` | time | no | `500ms` | Press-sensor pulse width (ON → OFF) |
 | `touch_led_duration` | time | no | `6s` | Touch / swipe / multi-touch LED feedback duration |
 
@@ -239,6 +240,25 @@ nightlight:
 | `standard` | Nightlight follows `sensor`; when `sleep_sensor` is ON → dim guide colour |
 | `bedroom` | Nightlight follows `sensor`; when `sleep_sensor` is ON → LED off (do not disturb), and button state display is also muted |
 | `dark` | Nightlight always ON (room with no windows); sleep/away still respected |
+
+### Theme select (optional)
+
+If you want to switch themes directly from Home Assistant, add `theme_select` to `tx_ultimate_switch`.
+Options are auto-filled from your `themes:` names.
+
+```yaml
+tx_ultimate_switch:
+  id: tx
+  leds: leds
+  themes:
+    - name: "Default"
+    - name: "Christmas"
+  active_theme: "Default"      # startup fallback
+  theme_select:
+    id: tx_theme
+    name: "TX Theme"
+    icon: mdi:palette
+```
 
 ---
 

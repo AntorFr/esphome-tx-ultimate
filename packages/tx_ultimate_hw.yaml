@@ -249,10 +249,24 @@ media_player:
       - id: sound_slide_christmas
         file: https://raw.githubusercontent.com/AntorFr/esphome-projects/refs/heads/master/sounds/tx_ultimate/christmas/slide.flac
 
+# ── Default themes (imported via packages) ───────────────────────────────────
+packages:
+  themes_default:
+    url: https://github.com/AntorFr/esphome-tx-ultimate
+    ref: main
+    files:
+      - packages/themes/default.yaml
+    #refresh: 0s
+
 # ── tx_ultimate_switch wiring (audio + sound packs) ──────────────────────────
 tx_ultimate_switch:
   id: tx
   media_player: mp
+  active_theme: "Default"
+  theme_select:
+    id: tx_theme
+    name: "Theme"
+    icon: mdi:palette
   sound_packs:
     - name: explore_the_stars
       click:       sound_click_explore

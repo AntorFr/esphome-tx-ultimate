@@ -19,6 +19,11 @@ namespace media_player { class MediaPlayer; }
 namespace esphome {
 namespace tx_ultimate_switch {
 
+class ThemeSelect : public select::Select {
+ protected:
+  void control(size_t index) override { this->publish_state(index); }
+};
+
 // ── Colour (r,g,b ∈ [0,100]) ────────────────────────────────────────────────
 struct Color3 {
   uint8_t r{0}, g{0}, b{100};
@@ -160,7 +165,7 @@ class TxUltimateSwitch : public Component {
   void set_room_type(RoomType rt) { room_type_ = rt; }
 
   // Select exposed in HA for theme switching
-  void set_theme_select(select::Select *s) { theme_select_ = s; }
+  void set_theme_select(ThemeSelect *s) { theme_select_ = s; }
 
   // Theme & sound pack registration
   void add_theme(Theme t) { themes_.push_back(std::move(t)); }
@@ -240,7 +245,7 @@ class TxUltimateSwitch : public Component {
   binary_sensor::BinarySensor *api_connected_{nullptr};
   binary_sensor::BinarySensor *wifi_connected_{nullptr};
 
-  select::Select *theme_select_{nullptr};
+  ThemeSelect *theme_select_{nullptr};
 
   std::vector<Theme> themes_;
   std::vector<SoundPack> sound_packs_;

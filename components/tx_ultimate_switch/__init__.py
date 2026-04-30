@@ -25,6 +25,7 @@ CONF_MEDIA_PLAYER      = "media_player"
 CONF_NIGHTLIGHT        = "nightlight"
 CONF_THEMES            = "themes"
 CONF_ACTIVE_THEME      = "active_theme"
+CONF_THEME_SELECT      = "theme_select"
 CONF_SOUND_PACKS       = "sound_packs"
 CONF_API_CONNECTED     = "api_connected"
 CONF_WIFI_CONNECTED    = "wifi_connected"
@@ -77,6 +78,7 @@ CONF_LEDS_BTN_STATE_IDS = [
 # ── C++ namespaced types ──────────────────────────────────────────────────────
 tx_ultimate_switch_ns = cg.esphome_ns.namespace("tx_ultimate_switch")
 TxUltimateSwitch = tx_ultimate_switch_ns.class_("TxUltimateSwitch", cg.Component)
+ThemeSelect = tx_ultimate_switch_ns.class_("ThemeSelect", select.Select)
 Theme    = tx_ultimate_switch_ns.struct("Theme")
 Color3   = tx_ultimate_switch_ns.struct("Color3")
 SoundPack = tx_ultimate_switch_ns.struct("SoundPack")
@@ -286,7 +288,19 @@ SOUND_PACK_SCHEMA = cv.Schema(
     }
 )
 
-CONFIG_SCHEMA = cv.Schema(
+THEME_SELECT_SCHEMA = select.select_schema(
+    ThemeSelect,
+    icon="mdi:palette",
+)
+
+
+def _validate_theme_select(config):
+    # theme_select may come from tx_ultimate_hw defaults; if no themes are
+    # configured, codegen will simply skip creating the select entity.
+    return config
+
+CONFIG_SCHEMA = cv.All(
+    cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(TxUltimateSwitch),
         cv.Required(CONF_BUTTONS): cv.All(
@@ -300,6 +314,7 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_NIGHTLIGHT): NIGHTLIGHT_SCHEMA,
         cv.Optional(CONF_THEMES, default=[]): cv.ensure_list(THEME_SCHEMA),
         cv.Optional(CONF_ACTIVE_THEME, default="Default"): cv.string,
+        cv.Optional(CONF_THEME_SELECT): THEME_SELECT_SCHEMA,
         cv.Optional(CONF_SOUND_PACKS, default=[]): cv.ensure_list(SOUND_PACK_SCHEMA),
         cv.Optional(CONF_API_CONNECTED): cv.use_id(binary_sensor.BinarySensor),
         cv.Optional(CONF_WIFI_CONNECTED): cv.use_id(binary_sensor.BinarySensor),
@@ -317,7 +332,9 @@ CONFIG_SCHEMA = cv.Schema(
         cv.GenerateID(CONF_LEDS_BTN_OUTPUT_IDS[2]): cv.declare_id(PartitionLightOutput),
         cv.GenerateID(CONF_LEDS_BTN_STATE_IDS[2]):  cv.declare_id(LightState),
     }
-).extend(cv.COMPONENT_SCHEMA)
+).extend(cv.COMPONENT_SCHEMA),
+    _validate_theme_select,
+)
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -573,6 +590,15 @@ async def to_code(config):
         cg.add(leds_nl_var.add_effects(nl_effects))
 
     cg.add(var.set_initial_theme(config[CONF_ACTIVE_THEME]))
+
+    if CONF_THEME_SELECT in config:
+        theme_options = [t[CONF_NAME] for t in config[CONF_THEMES]]
+        if theme_options:
+            theme_select_var = await select.new_select(
+                config[CONF_THEME_SELECT],
+                options=theme_options,
+            )
+            cg.add(var.set_theme_select(theme_select_var))
 
     for sp_cfg in config[CONF_SOUND_PACKS]:
         sp_args = [("name", sp_cfg[CONF_SOUND_PACK_NAME])]

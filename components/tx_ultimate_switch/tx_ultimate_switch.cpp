@@ -43,6 +43,11 @@ void TxUltimateSwitch::setup() {
 
   // Wire theme select callback
   if (theme_select_ != nullptr) {
+    if (!initial_theme_.empty() && theme_select_->has_option(initial_theme_)) {
+      theme_select_->publish_state(initial_theme_);
+    } else if (theme_select_->size() > 0) {
+      theme_select_->publish_state(0);
+    }
     theme_select_->add_on_state_callback([this](size_t) {
       refresh_led_default_();
     });
@@ -439,9 +444,16 @@ const Theme *TxUltimateSwitch::active_theme_() const {
   // If a select is configured, use its current value
   if (theme_select_ != nullptr) {
     const auto &active = theme_select_->current_option();
-    for (auto &t : themes_) {
-      if (t.name == active) return &t;
+    if (!active.empty()) {
+      for (auto &t : themes_) {
+        if (t.name == active) return &t;
+      }
     }
+  }
+
+  // Otherwise use configured initial_theme if found.
+  for (auto &t : themes_) {
+    if (t.name == initial_theme_) return &t;
   }
 
   // Fallback: first theme
