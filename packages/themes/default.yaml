@@ -14,10 +14,10 @@ tx_ultimate_switch:
     - name: "Default"
       button:
         color: [0, 0, 100]
-        brightness: 0.7
+        brightness: 0.5
       nightlight:
         color: [80, 70, 0]
-        brightness: 0.2
+        brightness: 0.1
       sleep:
         color: [60, 0, 0]  # rouge doux — repère de nuit sans gêner le sommeil
         brightness: 0.08
@@ -49,10 +49,10 @@ tx_ultimate_switch:
     - name: "Explore the Stars"
       button:
         color: [0, 0, 100]
-        brightness: 0.6
+        brightness: 0.5
       nightlight:
         color: [20, 0, 80]
-        brightness: 0.15
+        brightness: 0.1
         effect:
           addressable_stars:
             stars_probability: 10%
@@ -91,7 +91,7 @@ tx_ultimate_switch:
     - name: "Christmas"
       button:
         color: [100, 5, 5]
-        brightness: 0.8
+        brightness: 0.5
       nightlight:
         color: [0, 60, 0]
         brightness: 0.3
