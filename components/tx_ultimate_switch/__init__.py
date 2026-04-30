@@ -38,6 +38,7 @@ CONF_NIGHT_SENSOR = "sensor"
 CONF_SLEEP_SENSOR = "sleep_sensor"
 CONF_AWAY_SENSOR  = "away_sensor"
 CONF_ROOM_TYPE    = "room_type"
+CONF_NIGHTLIGHT_NAME = "name"
 
 # ── Button config keys ────────────────────────────────────────────────────────
 CONF_POSITION     = "position"
@@ -275,6 +276,12 @@ NIGHTLIGHT_SCHEMA = cv.Schema(
         cv.Optional(CONF_ROOM_TYPE, default="standard"): cv.enum(
             ROOM_TYPE_OPTIONS, lower=True
         ),
+        # If set, expose the nightlight LightState to Home Assistant under this
+        # name (slider for brightness, color picker, etc.). Useful for tuning
+        # theme values. Note: refresh_nightlight() may overwrite HA-side
+        # adjustments — disable the periodic time trigger temporarily for
+        # stable debugging.
+        cv.Optional(CONF_NIGHTLIGHT_NAME): cv.string,
     }
 )
 
@@ -493,6 +500,12 @@ async def to_code(config):
         leds_var, _to_segments(_shift14(nl_pixels_headup)),
     )
     cg.add(var.set_leds_nightlight(leds_nl_var))
+
+    # Optional: expose the nightlight LightState to Home Assistant for tuning.
+    nl_cfg = config.get(CONF_NIGHTLIGHT) or {}
+    if CONF_NIGHTLIGHT_NAME in nl_cfg:
+        cg.add(leds_nl_var.set_name(nl_cfg[CONF_NIGHTLIGHT_NAME]))
+        cg.add(cg.App.register_light(leds_nl_var))
 
     # ── Per-button partitions (only for buttons with state_sensor) ──────────
     for i, btn_cfg in enumerate(config[CONF_BUTTONS]):
