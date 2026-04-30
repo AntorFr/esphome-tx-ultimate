@@ -46,7 +46,7 @@ void TxUltimateSwitch::setup() {
     if (!initial_theme_.empty() && theme_select_->has_option(initial_theme_)) {
       theme_select_->publish_state(initial_theme_);
     } else if (theme_select_->size() > 0) {
-      theme_select_->publish_state(0);
+      theme_select_->publish_state(static_cast<size_t>(0));
     }
     theme_select_->add_on_state_callback([this](size_t) {
       refresh_led_default_();
