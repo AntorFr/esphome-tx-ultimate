@@ -66,19 +66,10 @@ void TxUltimateSwitch::dump_config() {  ESP_LOGCONFIG(TAG, "TX Ultimate Switch:"
                 room_type_ == RoomType::DARK    ? "dark"    : "standard");
 }
 
-// ── Loop (relay state change detection) ──────────────────────────────────────
+// ── Loop ─────────────────────────────────────────────────────────────────────
 
 void TxUltimateSwitch::loop() {
-  // When the LED reflects the relay (no external state_sensor), poll relay state
-  // to detect external changes (e.g., HA toggling the relay light directly).
-  for (auto &btn : buttons_) {
-    if (btn.relay == nullptr || btn.state_sensor != nullptr) continue;
-    bool current = btn.relay->current_values.is_on();
-    if (current != btn.last_relay_state) {
-      btn.last_relay_state = current;
-      refresh_led_default_();
-    }
-  }
+  // No periodic work is needed: LED updates are event-driven.
 }
 
 // ── Nightlight logic ──────────────────────────────────────────────────────────
@@ -118,6 +109,9 @@ void TxUltimateSwitch::refresh_nightlight_() {
 void TxUltimateSwitch::refresh_led_default_() {
   if (touch_led_active_) return;  // Touch animation has priority, skip
 
+  const bool state_display_blocked =
+      (room_type_ == RoomType::BEDROOM && sleep_sensor_ != nullptr && sleep_sensor_->state);
+
   // Turn off top LEDs (touch/swipe feedback zone). Setting the effect to
   // "None" is required: turn_off() alone keeps the previously-set effect
   // pointer alive on the LightState, so its update() keeps drawing.
@@ -140,17 +134,23 @@ void TxUltimateSwitch::refresh_led_default_() {
     }
   }
 
-  // Button LEDs — drive each by position; state_sensor wins over relay
+  // Button LEDs — displayed only for buttons wired with state_sensor.
+  // In bedroom sleep mode, state display is fully muted (same UX as nightlight).
   for (auto &btn : buttons_) {
-    bool state_on;
-    if (btn.state_sensor != nullptr) {
-      state_on = btn.state_sensor->state;
-    } else if (btn.relay != nullptr) {
-      state_on = btn.relay->current_values.is_on();
-    } else {
-      continue;  // no state source → skip
+    if (btn.state_sensor == nullptr) {
+      continue;
     }
-    apply_button_led_(static_cast<uint8_t>(btn.position), state_on);
+    if (state_display_blocked) {
+      uint8_t idx = static_cast<uint8_t>(btn.position);
+      if (idx < 3 && leds_button_[idx] != nullptr) {
+        auto off = leds_button_[idx]->turn_off();
+        off.set_effect("None");
+        off.set_transition_length(0);
+        off.perform();
+      }
+      continue;
+    }
+    apply_button_led_(static_cast<uint8_t>(btn.position), btn.state_sensor->state);
   }
 }
 

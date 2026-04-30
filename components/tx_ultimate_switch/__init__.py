@@ -448,7 +448,15 @@ async def to_code(config):
         for btn_cfg in config[CONF_BUTTONS]:
             btn_pixels_headup.append([per_pos[str(btn_cfg[CONF_POSITION])]])
 
-    all_btn_headup = {p for px in btn_pixels_headup for p in px}
+    # Buttons without state_sensor should not be used as state indicators.
+    # Their pixels are merged back into the nightlight partition.
+    state_led_enabled = [CONF_STATE_SENSOR in btn_cfg for btn_cfg in config[CONF_BUTTONS]]
+    state_btn_headup = {
+        p
+        for i, px in enumerate(btn_pixels_headup)
+        if state_led_enabled[i]
+        for p in px
+    }
 
     # ── leds_top ─────────────────────────────────────────────────────────────
     leds_top_var = await _create_partition(
@@ -458,10 +466,10 @@ async def to_code(config):
     )
     cg.add(var.set_leds_top(leds_top_var))
 
-    # ── leds_nightlight = all pixels minus button indicators ─────────────────
+    # ── leds_nightlight = all pixels minus state-indicator button LEDs ───────
     # Keep top LEDs inside nightlight so they display ambience when no touch
     # animation is active.
-    nl_pixels_headup = set(range(28)) - all_btn_headup
+    nl_pixels_headup = set(range(28)) - state_btn_headup
     leds_nl_var = await _create_partition(
         config[CONF_LEDS_NL_OUTPUT_ID],
         config[CONF_LEDS_NL_STATE_ID],
@@ -469,8 +477,10 @@ async def to_code(config):
     )
     cg.add(var.set_leds_nightlight(leds_nl_var))
 
-    # ── Per-button partitions ────────────────────────────────────────────────
+    # ── Per-button partitions (only for buttons with state_sensor) ──────────
     for i, btn_cfg in enumerate(config[CONF_BUTTONS]):
+        if not state_led_enabled[i]:
+            continue
         btn_part = await _create_partition(
             config[CONF_LEDS_BTN_OUTPUT_IDS[i]],
             config[CONF_LEDS_BTN_STATE_IDS[i]],

@@ -222,6 +222,8 @@ tx_ultimate_switch:
         name: "Bouton applique"
 ```
 
+If `state_sensor` is **not** provided for a button, that button LED is not used for state display and its pixel is automatically merged into `leds_nightlight`.
+
 ### Nightlight config
 
 ```yaml
@@ -235,7 +237,7 @@ nightlight:
 | `room_type` | Behaviour |
 |-------------|-----------|
 | `standard` | Nightlight follows `sensor`; when `sleep_sensor` is ON → dim guide colour |
-| `bedroom` | Nightlight follows `sensor`; when `sleep_sensor` is ON → LED off (do not disturb) |
+| `bedroom` | Nightlight follows `sensor`; when `sleep_sensor` is ON → LED off (do not disturb), and button state display is also muted |
 | `dark` | Nightlight always ON (room with no windows); sleep/away still respected |
 
 ---
@@ -385,11 +387,11 @@ The hw package (`packages/tx_ultimate_hw.yaml`) declares everything board-specif
 ### LED layout
 
 ```
-Pixels 0–6, 8, 10, 12–27 → leds_nightlight (bottom + side)
+Pixels 0–6, 8, 10, 12–27 → leds_nightlight (bottom + side, plus any button pixel without state_sensor)
 Pixels 20–26 (or 0–6 if upside_down) → leds_top (touch / swipe / multi-touch feedback)
-Pixel 7  → leds_button_left   (or right if upside_down)
-Pixel 9  → leds_button_center
-Pixel 11 → leds_button_right  (or left if upside_down)
+Pixel 7  → leds_button_left   (or right if upside_down), only if that button has state_sensor
+Pixel 9  → leds_button_center, only if that button has state_sensor
+Pixel 11 → leds_button_right  (or left if upside_down), only if that button has state_sensor
 ```
 
 ---
