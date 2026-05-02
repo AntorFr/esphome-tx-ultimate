@@ -4,6 +4,7 @@
 #include "esphome/core/automation.h"
 #include "esphome/components/light/light_state.h"
 #include "esphome/components/binary_sensor/binary_sensor.h"
+#include "esphome/components/event/event.h"
 #include "esphome/components/switch/switch.h"
 #include "esphome/components/select/select.h"
 
@@ -166,6 +167,7 @@ class TxUltimateSwitch : public Component {
 
   // Select exposed in HA for theme switching
   void set_theme_select(ThemeSelect *s) { theme_select_ = s; }
+  void set_action_event(event::Event *e) { action_event_ = e; }
 
   // Theme & sound pack registration
   void add_theme(Theme t) { themes_.push_back(std::move(t)); }
@@ -246,6 +248,7 @@ class TxUltimateSwitch : public Component {
   binary_sensor::BinarySensor *wifi_connected_{nullptr};
 
   ThemeSelect *theme_select_{nullptr};
+  event::Event *action_event_{nullptr};
 
   std::vector<Theme> themes_;
   std::vector<SoundPack> sound_packs_;

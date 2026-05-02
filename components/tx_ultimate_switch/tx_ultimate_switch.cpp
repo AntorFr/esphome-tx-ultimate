@@ -13,6 +13,13 @@ namespace esphome {
 namespace tx_ultimate_switch {
 
 static const char *TAG = "tx_ultimate_switch";
+static const char *EVENT_BUTTON_LEFT_PRESS = "button_left_press";
+static const char *EVENT_BUTTON_CENTER_PRESS = "button_center_press";
+static const char *EVENT_BUTTON_RIGHT_PRESS = "button_right_press";
+static const char *EVENT_SWIPE_LEFT = "swipe_left";
+static const char *EVENT_SWIPE_RIGHT = "swipe_right";
+static const char *EVENT_MULTI_TOUCH = "multi_touch";
+static const char *EVENT_LONG_PRESS = "long_press";
 
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
 
@@ -287,10 +294,12 @@ void TxUltimateSwitch::on_touch_release(int pos) {
   if (upside_down_) pos = 10 - pos;
 
   ButtonPosition target_pos;
+  const char *button_event_type = nullptr;
   size_t n = buttons_.size();
   if (n == 1) {
     // Single button: full surface routes to it regardless of declared position.
     target_pos = buttons_[0].position;
+    button_event_type = EVENT_BUTTON_CENTER_PRESS;
   } else if (n == 2) {
     // 50/50 split. Hardware reports pos=0 at the panel's right side, so low
     // pos → user-RIGHT, high pos → user-LEFT (after upside_down mirroring).
@@ -299,11 +308,19 @@ void TxUltimateSwitch::on_touch_release(int pos) {
     ButtonPosition leftmost  = (static_cast<int>(p0) < static_cast<int>(p1)) ? p0 : p1;
     ButtonPosition rightmost = (static_cast<int>(p0) < static_cast<int>(p1)) ? p1 : p0;
     target_pos = (pos <= 5) ? rightmost : leftmost;
+    button_event_type = (pos <= 5) ? EVENT_BUTTON_RIGHT_PRESS : EVENT_BUTTON_LEFT_PRESS;
   } else {
     // 3 buttons: strict thirds. pos=0 maps to user-RIGHT (hardware convention).
-    if      (pos <= 3) target_pos = ButtonPosition::RIGHT;
-    else if (pos <= 7) target_pos = ButtonPosition::CENTER;
-    else               target_pos = ButtonPosition::LEFT;
+    if (pos <= 3) {
+      target_pos = ButtonPosition::RIGHT;
+      button_event_type = EVENT_BUTTON_RIGHT_PRESS;
+    } else if (pos <= 7) {
+      target_pos = ButtonPosition::CENTER;
+      button_event_type = EVENT_BUTTON_CENTER_PRESS;
+    } else {
+      target_pos = ButtonPosition::LEFT;
+      button_event_type = EVENT_BUTTON_LEFT_PRESS;
+    }
   }
 
   ButtonConfig *btn = button_at_position_(target_pos);
@@ -344,6 +361,10 @@ void TxUltimateSwitch::on_touch_release(int pos) {
     });
   }
 
+  if (action_event_ != nullptr && button_event_type != nullptr) {
+    action_event_->trigger(button_event_type);
+  }
+
   ESP_LOGD(TAG, "Release pos=%d -> position %d, toggle=%d", pos, (int) target_pos, should_toggle);
 }
 
@@ -355,6 +376,7 @@ void TxUltimateSwitch::on_swipe_left() {
   if (t != nullptr) apply_touch_led_(t->swipe_left_color, t->swipe_left_brightness,
                                       t->swipe_left_effect, button_on_time_ms_);
   if (sp != nullptr) play_sound_(sp->slide);
+  if (action_event_ != nullptr) action_event_->trigger(EVENT_SWIPE_LEFT);
   ESP_LOGD(TAG, "Swipe left");
 }
 
@@ -365,6 +387,7 @@ void TxUltimateSwitch::on_swipe_right() {
   if (t != nullptr) apply_touch_led_(t->swipe_right_color, t->swipe_right_brightness,
                                       t->swipe_right_effect, button_on_time_ms_);
   if (sp != nullptr) play_sound_(sp->slide);
+  if (action_event_ != nullptr) action_event_->trigger(EVENT_SWIPE_RIGHT);
   ESP_LOGD(TAG, "Swipe right");
 }
 
@@ -375,6 +398,7 @@ void TxUltimateSwitch::on_full_touch_release() {
   if (t != nullptr) apply_touch_led_(t->multi_touch_color, t->multi_touch_brightness,
                                       t->multi_touch_effect, button_on_time_ms_);
   if (sp != nullptr) play_sound_(sp->multi_press);
+  if (action_event_ != nullptr) action_event_->trigger(EVENT_MULTI_TOUCH);
   ESP_LOGD(TAG, "Full touch release");
 }
 
@@ -385,6 +409,7 @@ void TxUltimateSwitch::on_long_touch_release() {
   if (t != nullptr) apply_touch_led_(t->long_press_color, t->long_press_brightness,
                                       t->long_press_effect, button_on_time_ms_);
   if (sp != nullptr) play_sound_(sp->long_press);
+  if (action_event_ != nullptr) action_event_->trigger(EVENT_LONG_PRESS);
   ESP_LOGD(TAG, "Long touch release");
 }
 

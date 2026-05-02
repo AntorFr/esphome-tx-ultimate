@@ -1,17 +1,17 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 import esphome.final_validate as fv
-from esphome.components import light, binary_sensor, switch, select, media_player, audio
+from esphome.components import light, binary_sensor, switch, select, media_player, audio, event
 from esphome.components.binary import light as binary_light
 from esphome.components.light.effects import EFFECTS_REGISTRY
-from esphome.const import CONF_ID, CONF_NAME, CONF_PLATFORM
+from esphome.const import CONF_ID, CONF_NAME, CONF_PLATFORM, DEVICE_CLASS_BUTTON
 from esphome import automation
 from esphome.core import CORE
 from esphome.cpp_helpers import build_registry_entry
 
 CODEOWNERS = ["@AntorFr"]
 DEPENDENCIES = ["light", "binary_sensor"]
-AUTO_LOAD = ["select", "partition", "switch"]
+AUTO_LOAD = ["select", "partition", "switch", "event"]
 
 MULTI_CONF = True
 
@@ -32,6 +32,7 @@ CONF_WIFI_CONNECTED    = "wifi_connected"
 CONF_BUTTON_ON_TIME    = "button_on_time"
 CONF_TOUCH_LED_DURATION = "touch_led_duration"
 CONF_UPSIDE_DOWN       = "upside_down"
+CONF_ACTION_EVENT_ID   = "action_event_id"
 
 # ── Nightlight config keys ────────────────────────────────────────────────────
 CONF_NIGHT_SENSOR = "sensor"
@@ -86,6 +87,21 @@ SoundPack = tx_ultimate_switch_ns.struct("SoundPack")
 RoomType = tx_ultimate_switch_ns.enum("RoomType", is_class=True)
 ButtonPosition  = tx_ultimate_switch_ns.enum("ButtonPosition", is_class=True)
 SwitchRelayMode = tx_ultimate_switch_ns.enum("SwitchRelayMode", is_class=True)
+
+ACTION_EVENT_TYPES = [
+    "button_left_press",
+    "button_center_press",
+    "button_right_press",
+    "swipe_left",
+    "swipe_right",
+    "multi_touch",
+    "long_press",
+]
+
+ACTION_EVENT_SCHEMA = event.event_schema(
+    icon="mdi:gesture-tap-button",
+    device_class=DEVICE_CLASS_BUTTON,
+)
 
 partitions_ns = cg.esphome_ns.namespace("partition")
 PartitionLightOutput = partitions_ns.class_(
@@ -327,6 +343,7 @@ CONFIG_SCHEMA = cv.All(
         cv.Optional(CONF_WIFI_CONNECTED): cv.use_id(binary_sensor.BinarySensor),
         cv.Optional(CONF_BUTTON_ON_TIME,     default="500ms"): cv.positive_time_period_milliseconds,
         cv.Optional(CONF_TOUCH_LED_DURATION, default="6s"):    cv.positive_time_period_milliseconds,
+        cv.GenerateID(CONF_ACTION_EVENT_ID): cv.declare_id(event.Event),
         # Internal auto-generated IDs for dynamic partition LightStates
         cv.GenerateID(CONF_LEDS_TOP_OUTPUT_ID): cv.declare_id(PartitionLightOutput),
         cv.GenerateID(CONF_LEDS_TOP_STATE_ID):  cv.declare_id(LightState),
@@ -397,6 +414,22 @@ async def _create_partition(output_id, state_id, leds_var, segments):
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
+
+    action_event_base = {
+        CONF_ID: config[CONF_ACTION_EVENT_ID],
+    }
+    if CORE.friendly_name:
+        action_event_base[CONF_NAME] = "None"
+    else:
+        # ESPHome forbids name: None when esphome.friendly_name is not set.
+        action_event_base[CONF_NAME] = "Actions"
+
+    action_event_cfg = ACTION_EVENT_SCHEMA(action_event_base)
+    action_event_var = await event.new_event(
+        action_event_cfg,
+        event_types=ACTION_EVENT_TYPES,
+    )
+    cg.add(var.set_action_event(action_event_var))
 
     is_reversed = config[CONF_UPSIDE_DOWN]
     cg.add(var.set_upside_down(is_reversed))
