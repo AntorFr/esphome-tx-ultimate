@@ -4,9 +4,10 @@ import esphome.final_validate as fv
 from esphome.components import light, binary_sensor, switch, select, media_player, audio, event
 from esphome.components.binary import light as binary_light
 from esphome.components.light.effects import EFFECTS_REGISTRY
-from esphome.const import CONF_ID, CONF_NAME, CONF_PLATFORM, DEVICE_CLASS_BUTTON
+from esphome.const import CONF_DISABLED_BY_DEFAULT, CONF_ID, CONF_NAME, CONF_PLATFORM, DEVICE_CLASS_BUTTON
 from esphome import automation
 from esphome.core import CORE
+from esphome.core.entity_helpers import setup_entity
 from esphome.cpp_helpers import build_registry_entry
 
 CODEOWNERS = ["@AntorFr"]
@@ -537,7 +538,12 @@ async def to_code(config):
     # Optional: expose the nightlight LightState to Home Assistant for tuning.
     nl_cfg = config.get(CONF_NIGHTLIGHT) or {}
     if CONF_NIGHTLIGHT_NAME in nl_cfg:
-        cg.add(leds_nl_var.set_name(nl_cfg[CONF_NIGHTLIGHT_NAME]))
+        # ESPHome 2026.x removed LightState::set_name(); use setup_entity instead.
+        await setup_entity(leds_nl_var, {
+            CONF_NAME: nl_cfg[CONF_NIGHTLIGHT_NAME],
+            CONF_DISABLED_BY_DEFAULT: False,
+        }, "light")
+        CORE.register_platform_component("light", leds_nl_var)
         cg.add(cg.App.register_light(leds_nl_var))
 
     # ── Per-button partitions (only for buttons with state_sensor) ──────────
