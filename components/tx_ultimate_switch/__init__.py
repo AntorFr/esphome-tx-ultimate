@@ -4,7 +4,16 @@ import esphome.final_validate as fv
 from esphome.components import light, binary_sensor, switch, select, media_player, audio, event
 from esphome.components.binary import light as binary_light
 from esphome.components.light.effects import EFFECTS_REGISTRY
-from esphome.const import CONF_DISABLED_BY_DEFAULT, CONF_ID, CONF_NAME, CONF_PLATFORM, DEVICE_CLASS_BUTTON
+from esphome.const import (
+    CONF_DISABLED_BY_DEFAULT,
+    CONF_ENTITY_CATEGORY,
+    CONF_ID,
+    CONF_INTERNAL,
+    CONF_NAME,
+    CONF_PLATFORM,
+    DEVICE_CLASS_BUTTON,
+    ENTITY_CATEGORY_CONFIG,
+)
 from esphome import automation
 from esphome.core import CORE
 from esphome.core.entity_helpers import setup_entity
@@ -41,6 +50,7 @@ CONF_SLEEP_SENSOR = "sleep_sensor"
 CONF_AWAY_SENSOR  = "away_sensor"
 CONF_ROOM_TYPE    = "room_type"
 CONF_NIGHTLIGHT_NAME = "name"
+CONF_NIGHTLIGHT_INTERNAL = "internal"
 
 # ── Button config keys ────────────────────────────────────────────────────────
 CONF_POSITION     = "position"
@@ -299,6 +309,7 @@ NIGHTLIGHT_SCHEMA = cv.Schema(
         # adjustments — disable the periodic time trigger temporarily for
         # stable debugging.
         cv.Optional(CONF_NIGHTLIGHT_NAME): cv.string,
+        cv.Optional(CONF_NIGHTLIGHT_INTERNAL): cv.boolean,
     }
 )
 
@@ -408,6 +419,19 @@ async def _create_partition(output_id, state_id, leds_var, segments):
     # Snap on/off so effects stop instantly instead of fading.
     cg.add(state_var.set_default_transition_length(0))
     return state_var
+
+
+async def _setup_led_partition_entity(state_var, name, internal):
+    await setup_entity(
+        state_var,
+        {
+            CONF_NAME: name,
+            CONF_DISABLED_BY_DEFAULT: False,
+            CONF_INTERNAL: internal,
+            CONF_ENTITY_CATEGORY: ENTITY_CATEGORY_CONFIG,
+        },
+        "light",
+    )
 
 
 # ── Code generation ───────────────────────────────────────────────────────────
@@ -522,27 +546,29 @@ async def to_code(config):
         config[CONF_LEDS_TOP_STATE_ID],
         leds_var, _to_segments(_shift14(HEADUP_TOP_PIXELS)),
     )
+    await _setup_led_partition_entity(leds_top_var, "Top", True)
     cg.add(var.set_leds_top(leds_top_var))
 
     # ── leds_nightlight = all pixels minus state-indicator button LEDs ───────
     # Keep top LEDs inside nightlight so they display ambience when no touch
     # animation is active.
     nl_pixels_headup = set(range(28)) - state_btn_headup
+    nl_cfg = config.get(CONF_NIGHTLIGHT) or {}
     leds_nl_var = await _create_partition(
         config[CONF_LEDS_NL_OUTPUT_ID],
         config[CONF_LEDS_NL_STATE_ID],
         leds_var, _to_segments(_shift14(nl_pixels_headup)),
     )
+    nl_default_name = "Nightlight"
+    nl_name = nl_cfg.get(CONF_NIGHTLIGHT_NAME, nl_default_name)
+    # If user sets a custom name, default to exposing this light in HA.
+    nl_default_internal = CONF_NIGHTLIGHT_NAME not in nl_cfg
+    nl_internal = nl_cfg.get(CONF_NIGHTLIGHT_INTERNAL, nl_default_internal)
+    await _setup_led_partition_entity(leds_nl_var, nl_name, nl_internal)
     cg.add(var.set_leds_nightlight(leds_nl_var))
 
     # Optional: expose the nightlight LightState to Home Assistant for tuning.
-    nl_cfg = config.get(CONF_NIGHTLIGHT) or {}
-    if CONF_NIGHTLIGHT_NAME in nl_cfg:
-        # ESPHome 2026.x removed LightState::set_name(); use setup_entity instead.
-        await setup_entity(leds_nl_var, {
-            CONF_NAME: nl_cfg[CONF_NIGHTLIGHT_NAME],
-            CONF_DISABLED_BY_DEFAULT: False,
-        }, "light")
+    if not nl_internal:
         CORE.register_platform_component("light", leds_nl_var)
         cg.add(cg.App.register_light(leds_nl_var))
 
@@ -554,6 +580,11 @@ async def to_code(config):
             config[CONF_LEDS_BTN_OUTPUT_IDS[i]],
             config[CONF_LEDS_BTN_STATE_IDS[i]],
             leds_var, _to_segments(_shift14(btn_pixels_headup[i])),
+        )
+        await _setup_led_partition_entity(
+            btn_part,
+            f"Button {str(btn_cfg[CONF_POSITION]).capitalize()}",
+            True,
         )
         cg.add(var.set_leds_button(btn_cfg[CONF_POSITION], btn_part))
 

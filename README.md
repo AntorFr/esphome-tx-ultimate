@@ -11,6 +11,7 @@ ESPHome external component for the **Sonoff TX Ultimate** touch switch — prope
   - 4 toggle modes per button: `true` / `false` / `fallback_ha` / `fallback_wifi`
   - Per-button **press sensor** exposed to Home Assistant (replaces the legacy `Touchfield 1/2/3` entities, fully configurable)
   - LED state machine (button ON/OFF, nightlight zone, touch feedback)
+  - Auto-named LED partitions for clearer logs (top/nightlight/button), with `internal: true` and `entity_category: config` by default
   - Nightlight with optional sleep/away inhibitors and `room_type` semantics
   - Theme system (button / nightlight / sleep / touch / swipe / long press / multi-touch — colours, brightness, effects)
   - Sound packs via the ESPHome I2S media player
@@ -164,6 +165,15 @@ When `upside_down: true`, the touch x-axis is mirrored so `position` stays user-
 | `fallback_ha` | Toggle only when `api_connected` is OFF (HA unreachable) |
 | `fallback_wifi` | Toggle only when `wifi_connected` is OFF (no network) |
 
+`switch_relay` quick reference:
+
+| Value | Local toggle | Depends on connectivity sensor | Typical usage |
+|------|---------------|--------------------------------|---------------|
+| `true` | yes | no | Classic local wall switch |
+| `false` | no | no | Relay as permanent power supply (smart bulbs) |
+| `fallback_ha` | only if HA unreachable | `api_connected` | Keep local fallback when HA is down |
+| `fallback_wifi` | only if WiFi down | `wifi_connected` | Keep local fallback when network drops |
+
 #### `relay` — inline vs reference
 
 ```yaml
@@ -229,17 +239,52 @@ If `state_sensor` is **not** provided for a button, that button LED is not used 
 
 ```yaml
 nightlight:
-  sensor: night_sensor        # required — HA binary sensor that is ON at night
-  sleep_sensor: sleep_sensor  # optional — mutes sounds; behaviour depends on room_type
+  name: "Nightlight"          # optional — overrides default partition name and defaults to internal: false
+  internal: false             # optional — force exposure (default depends on `name`, see below)
+  sensor: night_sensor        # optional — HA binary sensor that is ON at night
+  sleep_sensor: sleep_sensor  # optional — sleep mode behaviour depends on room_type
   away_sensor: away_sensor    # optional — disables nightlight when away
-  room_type: standard         # standard | bedroom | dark (default: standard)
+  room_type: standard         # optional — standard | bedroom | dark (default: standard)
 ```
+
+Nightlight options:
+
+| Key | Type | Required | Default | Allowed values | Description |
+|-----|------|----------|---------|----------------|-------------|
+| `name` | string | no | `Nightlight` | any string | Entity name for the nightlight partition light |
+| `internal` | bool | no | dynamic | `true` / `false` | Controls if the nightlight partition is exposed to HA |
+| `sensor` | binary_sensor id | no | — | existing id | Night condition input |
+| `sleep_sensor` | binary_sensor id | no | — | existing id | Sleep condition input |
+| `away_sensor` | binary_sensor id | no | — | existing id | Away condition input |
+| `room_type` | enum | no | `standard` | `standard`, `bedroom`, `dark` | Selects nightlight/sleep behavior profile |
 
 | `room_type` | Behaviour |
 |-------------|-----------|
 | `standard` | Nightlight follows `sensor`; when `sleep_sensor` is ON → dim guide colour |
 | `bedroom` | Nightlight follows `sensor`; when `sleep_sensor` is ON → LED off (do not disturb), and button state display is also muted |
 | `dark` | Nightlight always ON (room with no windows); sleep/away still respected |
+
+Nightlight exposure defaults:
+
+- If `nightlight.name` is not set: internal entity with default name `Nightlight` (not exposed to HA)
+- If `nightlight.name` is set: provided name is used and `internal` defaults to `false` (exposed to HA)
+- You can always force visibility with `nightlight.internal: true|false`
+
+Internal light partitions (`Top`, `Nightlight`, `Button Left/Center/Right`) are always named to avoid `?` in light logs. By default they are configured with `internal: true` and `entity_category: config`.
+
+### Action event types
+
+The component emits the following stable `event_type` values on the TX Ultimate event entity:
+
+| `event_type` | Meaning |
+|--------------|---------|
+| `button_left_press` | Left button press (or first zone on 2/3-button setups) |
+| `button_center_press` | Center button press (single button on 1-button setup) |
+| `button_right_press` | Right button press |
+| `swipe_left` | Left swipe gesture |
+| `swipe_right` | Right swipe gesture |
+| `multi_touch` | Multi-touch gesture release |
+| `long_press` | Long press release |
 
 ### Theme select (optional)
 

@@ -238,6 +238,8 @@ tx_ultimate_switch:
   media_player: media_out
   api_connected: api_connected
   nightlight:
+    name: "Nightlight"
+    internal: false
     sensor: night_sensor
     sleep_sensor: sleep_sensor
     away_sensor: away_sensor
