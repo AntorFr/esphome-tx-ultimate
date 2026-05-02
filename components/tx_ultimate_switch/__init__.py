@@ -107,6 +107,7 @@ ACTION_EVENT_TYPES = [
     "swipe_right",
     "multi_touch",
     "long_press",
+    "idle",
 ]
 
 ACTION_EVENT_SCHEMA = event.event_schema(

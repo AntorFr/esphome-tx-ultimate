@@ -136,6 +136,7 @@ trigger:
     not_to:
       - unavailable
       - unknown
+      - idle
 
 condition: []
 

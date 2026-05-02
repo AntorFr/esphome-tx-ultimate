@@ -20,6 +20,7 @@ static const char *EVENT_SWIPE_LEFT = "swipe_left";
 static const char *EVENT_SWIPE_RIGHT = "swipe_right";
 static const char *EVENT_MULTI_TOUCH = "multi_touch";
 static const char *EVENT_LONG_PRESS = "long_press";
+static const char *EVENT_IDLE = "idle";
 
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
 
@@ -129,7 +130,6 @@ void TxUltimateSwitch::refresh_led_default_() {
   // pointer alive on the LightState, so its update() keeps drawing.
   if (leds_top_ != nullptr) {
     auto call = leds_top_->turn_off();
-    call.set_effect("None");
     call.set_transition_length(0);
     call.perform();
   }
@@ -140,7 +140,6 @@ void TxUltimateSwitch::refresh_led_default_() {
   } else {
     if (leds_nightlight_ != nullptr) {
       auto call = leds_nightlight_->turn_off();
-      call.set_effect("None");
       call.set_transition_length(0);
       call.perform();
     }
@@ -156,7 +155,6 @@ void TxUltimateSwitch::refresh_led_default_() {
       uint8_t idx = static_cast<uint8_t>(btn.position);
       if (idx < 3 && leds_button_[idx] != nullptr) {
         auto off = leds_button_[idx]->turn_off();
-        off.set_effect("None");
         off.set_transition_length(0);
         off.perform();
       }
@@ -217,7 +215,6 @@ void TxUltimateSwitch::apply_button_led_(uint8_t idx, bool relay_on) {
     }
   } else {
     auto off = leds_button_[idx]->turn_off();
-    off.set_effect("None");
     off.set_transition_length(0);
     off.perform();
     return;
@@ -363,6 +360,7 @@ void TxUltimateSwitch::on_touch_release(int pos) {
 
   if (action_event_ != nullptr && button_event_type != nullptr) {
     action_event_->trigger(button_event_type);
+    action_event_->trigger(EVENT_IDLE);
   }
 
   ESP_LOGD(TAG, "Release pos=%d -> position %d, toggle=%d", pos, (int) target_pos, should_toggle);
@@ -376,7 +374,7 @@ void TxUltimateSwitch::on_swipe_left() {
   if (t != nullptr) apply_touch_led_(t->swipe_left_color, t->swipe_left_brightness,
                                       t->swipe_left_effect, button_on_time_ms_);
   if (sp != nullptr) play_sound_(sp->slide);
-  if (action_event_ != nullptr) action_event_->trigger(EVENT_SWIPE_LEFT);
+  if (action_event_ != nullptr) { action_event_->trigger(EVENT_SWIPE_LEFT); action_event_->trigger(EVENT_IDLE); }
   ESP_LOGD(TAG, "Swipe left");
 }
 
@@ -387,7 +385,7 @@ void TxUltimateSwitch::on_swipe_right() {
   if (t != nullptr) apply_touch_led_(t->swipe_right_color, t->swipe_right_brightness,
                                       t->swipe_right_effect, button_on_time_ms_);
   if (sp != nullptr) play_sound_(sp->slide);
-  if (action_event_ != nullptr) action_event_->trigger(EVENT_SWIPE_RIGHT);
+  if (action_event_ != nullptr) { action_event_->trigger(EVENT_SWIPE_RIGHT); action_event_->trigger(EVENT_IDLE); }
   ESP_LOGD(TAG, "Swipe right");
 }
 
@@ -398,7 +396,7 @@ void TxUltimateSwitch::on_full_touch_release() {
   if (t != nullptr) apply_touch_led_(t->multi_touch_color, t->multi_touch_brightness,
                                       t->multi_touch_effect, button_on_time_ms_);
   if (sp != nullptr) play_sound_(sp->multi_press);
-  if (action_event_ != nullptr) action_event_->trigger(EVENT_MULTI_TOUCH);
+  if (action_event_ != nullptr) { action_event_->trigger(EVENT_MULTI_TOUCH); action_event_->trigger(EVENT_IDLE); }
   ESP_LOGD(TAG, "Full touch release");
 }
 
@@ -409,7 +407,7 @@ void TxUltimateSwitch::on_long_touch_release() {
   if (t != nullptr) apply_touch_led_(t->long_press_color, t->long_press_brightness,
                                       t->long_press_effect, button_on_time_ms_);
   if (sp != nullptr) play_sound_(sp->long_press);
-  if (action_event_ != nullptr) action_event_->trigger(EVENT_LONG_PRESS);
+  if (action_event_ != nullptr) { action_event_->trigger(EVENT_LONG_PRESS); action_event_->trigger(EVENT_IDLE); }
   ESP_LOGD(TAG, "Long touch release");
 }
 
