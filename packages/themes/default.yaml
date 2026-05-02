@@ -16,11 +16,11 @@ tx_ultimate_switch:
         color: [0, 0, 100]
         brightness: 0.5
       nightlight:
-        color: [80, 70, 0]
-        brightness: 0.1
+        color: [100, 60, 0]
+        brightness: 0.02
       sleep:
         color: [60, 0, 0]  # rouge doux — repère de nuit sans gêner le sommeil
-        brightness: 0.08
+        brightness: 0.01
       touch:
         color: [0, 100, 100]
         brightness: 1.0
@@ -52,7 +52,7 @@ tx_ultimate_switch:
         brightness: 0.5
       nightlight:
         color: [20, 0, 80]
-        brightness: 0.1
+        brightness: 0.02
         effect:
           addressable_stars:
             stars_probability: 10%
@@ -62,7 +62,7 @@ tx_ultimate_switch:
               blue: 100%
       sleep:
         color: [60, 0, 0]
-        brightness: 0.08
+        brightness: 0.01
       touch:
         color: [0, 50, 100]
         brightness: 1.0
@@ -94,14 +94,14 @@ tx_ultimate_switch:
         brightness: 0.5
       nightlight:
         color: [0, 60, 0]
-        brightness: 0.3
+        brightness: 0.02
         effect:
           addressable_christmas:
             blank_size: 1
             bit_size: 1
       sleep:
         color: [60, 0, 0]
-        brightness: 0.08
+        brightness: 0.01
       touch:
         color: [100, 50, 0]
         brightness: 1.0
