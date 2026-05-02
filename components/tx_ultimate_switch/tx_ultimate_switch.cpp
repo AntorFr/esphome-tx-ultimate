@@ -231,7 +231,6 @@ void TxUltimateSwitch::apply_touch_led_(const Color3 &color, float brightness,
   call.set_red(color.r / 100.0f);
   call.set_green(color.g / 100.0f);
   call.set_blue(color.b / 100.0f);
-  call.set_transition_length(0);
   if (!effect.empty() && effect != "None") {
     call.set_effect(effect);
   } else {
