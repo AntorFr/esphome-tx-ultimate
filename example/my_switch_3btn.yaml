@@ -23,6 +23,9 @@ substitutions:
 esphome:
   name: ${device_name}
   friendly_name: ${friendly_name}
+  project:
+    name: TX Ultimate
+    version: "2.0.0"
 
 packages:
   hw: github://AntorFr/esphome-tx-ultimate/packages/tx_ultimate_hw.yaml@main
