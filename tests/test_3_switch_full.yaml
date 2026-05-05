@@ -214,7 +214,6 @@ tx_ultimate_switch:
       relay:
         id: relay_1
         name: "L1"
-        output: l1_output
       sensor:
         name: "Touchfield 1"
     - position: center
@@ -222,7 +221,6 @@ tx_ultimate_switch:
       relay:
         id: relay_2
         name: "L2"
-        output: l2_output
       sensor:
         name: "Touchfield 2"
     - position: right
@@ -230,7 +228,6 @@ tx_ultimate_switch:
       relay:
         id: relay_3
         name: "L3"
-        output: l3_output
       sensor:
         name: "Touchfield 3"
   leds: leds

@@ -10,6 +10,7 @@ from esphome.const import (
     CONF_ID,
     CONF_INTERNAL,
     CONF_NAME,
+    CONF_OUTPUT,
     CONF_PLATFORM,
     DEVICE_CLASS_BUTTON,
     ENTITY_CATEGORY_CONFIG,
@@ -146,6 +147,13 @@ SWITCH_RELAY_OPTIONS = {
 
 ALLOWED_RELAY_IDS = ("relay_1", "relay_2", "relay_3")
 
+# Auto-derived output ID when the user omits `output:` in an inline relay
+_RELAY_DEFAULT_OUTPUT = {
+    "relay_1": "l1_output",
+    "relay_2": "l2_output",
+    "relay_3": "l3_output",
+}
+
 # ── Validators ────────────────────────────────────────────────────────────────
 def validate_color(value):
     if not isinstance(value, (list, tuple)):
@@ -222,8 +230,15 @@ RELAY_INLINE_SCHEMA = binary_light.CONFIG_SCHEMA.extend(
 
 
 def _validate_relay(value):
-    """Accept either an id reference (string) or an inline binary-light declaration (dict)."""
+    """Accept either an id reference (string) or an inline binary-light declaration (dict).
+    When an inline dict is given without an ``output`` key, the output is automatically
+    derived from the relay id (relay_1 → l1_output, relay_2 → l2_output, relay_3 → l3_output)."""
     if isinstance(value, dict):
+        if CONF_OUTPUT not in value and CONF_ID in value:
+            rid = value[CONF_ID]
+            if rid in _RELAY_DEFAULT_OUTPUT:
+                value = dict(value)
+                value[CONF_OUTPUT] = _RELAY_DEFAULT_OUTPUT[rid]
         return RELAY_INLINE_SCHEMA(value)
     return cv.use_id(light.LightState)(value)
 
