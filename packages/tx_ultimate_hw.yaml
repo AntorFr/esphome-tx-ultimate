@@ -348,7 +348,7 @@ time:
 # ── Boot init ─────────────────────────────────────────────────────────────────
 esphome:
   project:
-    name: TX Ultimate
+    name: AntorFR.TX Ultimate
     version: "2.0.0"
   on_boot:
     priority: -100
