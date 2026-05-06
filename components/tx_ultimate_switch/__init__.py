@@ -546,9 +546,16 @@ async def to_code(config):
         for btn_cfg in config[CONF_BUTTONS]:
             btn_pixels_headup.append([per_pos[str(btn_cfg[CONF_POSITION])]])
 
-    # Buttons without state_sensor should not be used as state indicators.
-    # Their pixels are merged back into the nightlight partition.
-    state_led_enabled = [CONF_STATE_SENSOR in btn_cfg for btn_cfg in config[CONF_BUTTONS]]
+    # State indicators are enabled when:
+    # - state_sensor is configured (always takes priority), or
+    # - switch_relay is true (local relay is source of truth).
+    # Other modes (false/fallback_*) without state_sensor are merged into
+    # nightlight because relay state is not considered meaningful for display.
+    state_led_enabled = [
+        (CONF_STATE_SENSOR in btn_cfg)
+        or (btn_cfg[CONF_SWITCH_RELAY] == SWITCH_RELAY_OPTIONS["true"])
+        for btn_cfg in config[CONF_BUTTONS]
+    ]
     state_btn_headup = {
         p
         for i, px in enumerate(btn_pixels_headup)
@@ -588,7 +595,7 @@ async def to_code(config):
         CORE.register_platform_component("light", leds_nl_var)
         cg.add(cg.App.register_light(leds_nl_var))
 
-    # ── Per-button partitions (only for buttons with state_sensor) ──────────
+    # ── Per-button partitions (buttons with state display enabled) ──────────
     for i, btn_cfg in enumerate(config[CONF_BUTTONS]):
         if not state_led_enabled[i]:
             continue

@@ -349,7 +349,7 @@ time:
 esphome:
   project:
     name: AntorFR.TX Ultimate
-    version: "2.1.0"
+    version: "2.2.0"
   on_boot:
     priority: -100
     then:

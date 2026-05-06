@@ -208,9 +208,17 @@ sensor:
 
 Use it to drive HA automations (e.g. toggle a Hue scene from a `switch_relay: false` button).
 
+#### LED state source priority (`state_sensor` vs relay)
+
+Bottom button indicator LEDs use this priority per button:
+
+1. If `state_sensor` is set: use `state_sensor` (always).
+2. Else if `switch_relay: true`: use the local relay state.
+3. Else: state is considered OFF (pixel stays in nightlight behavior).
+
 #### `state_sensor` — external state for LED display
 
-When the relay is not the source of truth (e.g. it's just powering a Hue bulb that HA controls), provide a `state_sensor` so the button LED reflects the actual device state. Best paired with `internal: true` on the HA-side sensor since HA already knows the state:
+When the relay is not the source of truth (e.g. it's just powering a Hue bulb that HA controls), provide a `state_sensor` so the button LED reflects the actual device state. This also overrides relay-based indication even if `switch_relay: true`. Best paired with `internal: true` on the HA-side sensor since HA already knows the state:
 
 ```yaml
 binary_sensor:
@@ -233,7 +241,10 @@ tx_ultimate_switch:
         name: "Bouton applique"
 ```
 
-If `state_sensor` is **not** provided for a button, that button LED is not used for state display and its pixel is automatically merged into `leds_nightlight`.
+If `state_sensor` is **not** provided:
+
+- with `switch_relay: true`, the button LED follows the local relay state;
+- with `switch_relay: false` / `fallback_ha` / `fallback_wifi`, the button has no state indicator and its pixel is merged into `leds_nightlight`.
 
 ### Nightlight config
 

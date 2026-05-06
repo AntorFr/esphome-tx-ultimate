@@ -39,8 +39,10 @@ void TxUltimateSwitch::setup() {
     away_sensor_->add_on_state_callback([this](bool) { refresh_nightlight_(); });
   }
 
-  // Wire relay state callbacks
-  // (state changes are detected in loop() instead of listener interface)
+  // Relay indicator cache starts OFF until first local toggle.
+  for (auto &btn : buttons_) {
+    btn.last_relay_state = false;
+  }
 
   // Wire state sensor callbacks (LED follows external state when present)
   for (auto &btn : buttons_) {
@@ -145,10 +147,15 @@ void TxUltimateSwitch::refresh_led_default_() {
     }
   }
 
-  // Button LEDs — displayed only for buttons wired with state_sensor.
+  // Button LEDs priority:
+  // 1) state_sensor when configured,
+  // 2) relay state only for switch_relay=true (ALWAYS),
+  // 3) otherwise considered OFF.
   // In bedroom sleep mode, state display is fully muted (same UX as nightlight).
   for (auto &btn : buttons_) {
-    if (btn.state_sensor == nullptr) {
+    bool can_use_relay_state = (btn.mode == SwitchRelayMode::ALWAYS && btn.relay != nullptr);
+    bool has_state_source = (btn.state_sensor != nullptr) || can_use_relay_state;
+    if (!has_state_source) {
       continue;
     }
     if (state_display_blocked) {
@@ -160,7 +167,13 @@ void TxUltimateSwitch::refresh_led_default_() {
       }
       continue;
     }
-    apply_button_led_(static_cast<uint8_t>(btn.position), btn.state_sensor->state);
+    bool display_on = false;
+    if (btn.state_sensor != nullptr) {
+      display_on = btn.state_sensor->state;
+    } else if (can_use_relay_state) {
+      display_on = btn.last_relay_state;
+    }
+    apply_button_led_(static_cast<uint8_t>(btn.position), display_on);
   }
 }
 
@@ -344,6 +357,8 @@ void TxUltimateSwitch::on_touch_release(int pos) {
   if (should_toggle && btn->relay != nullptr) {
     auto call = btn->relay->toggle();
     call.perform();
+    btn->last_relay_state = !btn->last_relay_state;
+    refresh_led_default_();
   }
 
   // Publish the press sensor (visible to HA) — pulse ON, then OFF after button_on_time_ms.
