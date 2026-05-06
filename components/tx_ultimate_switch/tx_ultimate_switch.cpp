@@ -39,9 +39,14 @@ void TxUltimateSwitch::setup() {
     away_sensor_->add_on_state_callback([this](bool) { refresh_nightlight_(); });
   }
 
-  // Relay indicator cache starts OFF until first local toggle.
+  // Initialize relay indicator cache from the actual relay state when
+  // switch_relay=true, so indicator does not start inverted.
   for (auto &btn : buttons_) {
-    btn.last_relay_state = false;
+    if (btn.mode == SwitchRelayMode::ALWAYS && btn.relay != nullptr) {
+      btn.last_relay_state = btn.relay->current_values.is_on();
+    } else {
+      btn.last_relay_state = false;
+    }
   }
 
   // Wire state sensor callbacks (LED follows external state when present)
@@ -84,7 +89,21 @@ void TxUltimateSwitch::dump_config() {  ESP_LOGCONFIG(TAG, "TX Ultimate Switch:"
 // ── Loop ─────────────────────────────────────────────────────────────────────
 
 void TxUltimateSwitch::loop() {
-  // No periodic work is needed: LED updates are event-driven.
+  // Keep relay-based indicators synced with the actual relay state.
+  bool changed = false;
+  for (auto &btn : buttons_) {
+    if (btn.mode != SwitchRelayMode::ALWAYS || btn.relay == nullptr) {
+      continue;
+    }
+    bool relay_on = btn.relay->current_values.is_on();
+    if (relay_on != btn.last_relay_state) {
+      btn.last_relay_state = relay_on;
+      changed = true;
+    }
+  }
+  if (changed) {
+    refresh_led_default_();
+  }
 }
 
 // ── Nightlight logic ──────────────────────────────────────────────────────────
@@ -357,7 +376,9 @@ void TxUltimateSwitch::on_touch_release(int pos) {
   if (should_toggle && btn->relay != nullptr) {
     auto call = btn->relay->toggle();
     call.perform();
-    btn->last_relay_state = !btn->last_relay_state;
+    if (btn->mode == SwitchRelayMode::ALWAYS) {
+      btn->last_relay_state = btn->relay->current_values.is_on();
+    }
     refresh_led_default_();
   }
 
