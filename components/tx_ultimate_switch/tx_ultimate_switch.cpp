@@ -297,25 +297,25 @@ void TxUltimateSwitch::on_touch_release(int pos) {
     target_pos = buttons_[0].position;
     button_event_type = EVENT_BUTTON_CENTER_PRESS;
   } else if (n == 2) {
-    // 50/50 split. Hardware reports pos=0 at the panel's right side, so low
-    // pos → user-RIGHT, high pos → user-LEFT (after upside_down mirroring).
+    // 50/50 split. Hardware reports low x on the panel's left side (after
+    // upside_down mirroring), so low pos → user-LEFT, high pos → user-RIGHT.
     ButtonPosition p0 = buttons_[0].position;
     ButtonPosition p1 = buttons_[1].position;
     ButtonPosition leftmost  = (static_cast<int>(p0) < static_cast<int>(p1)) ? p0 : p1;
     ButtonPosition rightmost = (static_cast<int>(p0) < static_cast<int>(p1)) ? p1 : p0;
-    target_pos = (pos <= 5) ? rightmost : leftmost;
-    button_event_type = (pos <= 5) ? EVENT_BUTTON_RIGHT_PRESS : EVENT_BUTTON_LEFT_PRESS;
+    target_pos = (pos <= 5) ? leftmost : rightmost;
+    button_event_type = (pos <= 5) ? EVENT_BUTTON_LEFT_PRESS : EVENT_BUTTON_RIGHT_PRESS;
   } else {
-    // 3 buttons: strict thirds. pos=0 maps to user-RIGHT (hardware convention).
+    // 3 buttons: strict thirds. pos=0 maps to user-LEFT.
     if (pos <= 3) {
-      target_pos = ButtonPosition::RIGHT;
-      button_event_type = EVENT_BUTTON_RIGHT_PRESS;
+      target_pos = ButtonPosition::LEFT;
+      button_event_type = EVENT_BUTTON_LEFT_PRESS;
     } else if (pos <= 7) {
       target_pos = ButtonPosition::CENTER;
       button_event_type = EVENT_BUTTON_CENTER_PRESS;
     } else {
-      target_pos = ButtonPosition::LEFT;
-      button_event_type = EVENT_BUTTON_LEFT_PRESS;
+      target_pos = ButtonPosition::RIGHT;
+      button_event_type = EVENT_BUTTON_RIGHT_PRESS;
     }
   }
 

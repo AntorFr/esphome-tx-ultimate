@@ -693,8 +693,10 @@ async def to_code(config):
     if CONF_THEME_SELECT in config:
         theme_options = [t[CONF_NAME] for t in config[CONF_THEMES]]
         if theme_options:
+            theme_select_cfg = dict(config[CONF_THEME_SELECT])
+            theme_select_cfg.setdefault(CONF_ENTITY_CATEGORY, ENTITY_CATEGORY_CONFIG)
             theme_select_var = await select.new_select(
-                config[CONF_THEME_SELECT],
+                theme_select_cfg,
                 options=theme_options,
             )
             cg.add(var.set_theme_select(theme_select_var))
